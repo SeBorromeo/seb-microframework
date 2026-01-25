@@ -1,0 +1,14 @@
+{
+  "name": "sebastian/php-micro-framework",
+  "description": "A lightweight PHP micro-framework inspired by Express",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "Sebastian\\MicroFramework\\": "src/"
+    }
+  },
+  "require": {
+    "php": "^8.1"
+  }
+}
