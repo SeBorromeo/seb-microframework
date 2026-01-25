@@ -6,38 +6,40 @@ class Request {
     private ?array $body = null; // lazy loaded
     private array $headers;
     private array $server;
+    private array $attributes = [];
 
     private string $method;
     private string $path;
     private string $contentType;
+    
+    // TODO:
+    private array $cookies = [];
+    private bool $fresh;
+    private string $host;
+    private string $hostname;
+    private string $ip;
+    private Response $res;
+    private string $protocol;
+    private string $route;
+    private bool $secure;
 
-    // Attributes bag for magic properties to hold extra data
-    private array $attributes = [];
-
-    public function __construct(array $server = null) {
-        $this->server = $server ?? $_SERVER;
-        $this->method = strtoupper($this->server['REQUEST_METHOD'] ?? 'GET');
-        $this->path = parse_url($this->server['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+    
+    public function __construct(array $serverParams = null) {
+        $this->serverParams = $serverParams ?? $_SERVER;
+        $this->method = strtoupper($this->serverParams['REQUEST_METHOD'] ?? 'GET');
+        $this->path = parse_url($this->serverParams['REQUEST_URI'] ?? '/', PHP_URL_PATH);
         $this->contentType = $this->parseContentType();
         $this->query = $this->parseQuery();
         $this->headers = $this->parseHeaders();
     }
 
-    public static function createFromGlobals(): self {
-        return new self($_SERVER);
-    }
-
     // HTTP Method
     public function method(): string { return $this->method; }
-
-    public function isMethod(string $method): bool {
-        return $this->$method === strtoupper($method);
-    }
 
     public function path(): string { return $this->path; }
 
     public function uri(): string { 
-        return $this->server['REQUEST_URI'] ?? '/'; 
+        return $this->serverParams['REQUEST_URI'] ?? '/'; 
     }
 
     // Query parameters (?key=value)
@@ -80,6 +82,10 @@ class Request {
     public function has(string $key): bool
     {
         return isset($this->body()[$key]) || isset($this->query[$key]);
+    }
+
+    public function is(string|array $val): string {
+
     }
 
     public function json(): array {
@@ -159,19 +165,19 @@ class Request {
 
     // Private helpers
     private function parseContentType(): string {
-        $contentType = $this->server['CONTENT_TYPE'] ?? '';
+        $contentType = $this->serverParams['CONTENT_TYPE'] ?? '';
         return trim(explode(';', $contentType)[0]);
     }
 
     private function parseQuery(): array {
-        parse_str($this->server['QUERY_STRING'] ?? '', $query);
+        parse_str($this->serverParams['QUERY_STRING'] ?? '', $query);
         return $query;
     }
 
     private function parseHeaders(): array {
         $headers = [];
 
-        foreach ($this->server as $key => $value) {
+        foreach ($this->serverParams as $key => $value) {
             if (str_starts_with($key, 'HTTP_')) {
                 // HTTP_AUTHORIZATION -> authorization
                 $name = strtolower(str_replace('_', '-', substr($key, 5)));
@@ -180,11 +186,11 @@ class Request {
         }
 
         // Special cases (these don't have HTTP_ prefix)
-        if (isset($this->server['CONTENT_TYPE'])) {
-            $headers['content-type'] = $this->server['CONTENT_TYPE'];
+        if (isset($this->serverParams['CONTENT_TYPE'])) {
+            $headers['content-type'] = $this->serverParams['CONTENT_TYPE'];
         }
-        if (isset($this->server['CONTENT_LENGTH'])) {
-            $headers['content-length'] = $this->server['CONTENT_LENGTH'];
+        if (isset($this->serverParams['CONTENT_LENGTH'])) {
+            $headers['content-length'] = $this->serverParams['CONTENT_LENGTH'];
         }
 
         return $headers;
