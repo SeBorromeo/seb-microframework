@@ -4,12 +4,11 @@ use Sebastian\MicroFramework\Application;
 
 class Response {
     private Application $app;
-    private bool $headersSent = false;
-    private bool $ended = false;
-    private array $locals;
+    private array $locals = [];
     
     private array $headers = [];
     private bool $headersSent = False;
+    private bool $ended = False;
     private int $statusCode = 200;
     public string $statusMessage = 'OK';
     private string $body = "";
@@ -44,6 +43,8 @@ class Response {
         $this->app = $app;
     }
 
+    public function app(): Application { return $this->app; }
+
     /* ---------- Headers ---------- */
     
     public function get(string $name): string|array|null { return $this->getHeader($name); }
@@ -69,6 +70,9 @@ class Response {
         
     public function set(string|array $nameOrObject, string|array|null $value = null): void { $this->header($nameOrObject, $value); }
     public function header(string|array $nameOrObject, string|array|null $value = null): void {
+        if ($this->headersSent)
+            throw new \LogicException('Cannot set headers after they are sent');
+
         if (is_array($nameOrObject)) {
             foreach ($nameOrObject as $h => $v) {
                 $this->headers[$h] = $v;
@@ -79,6 +83,9 @@ class Response {
     }
 
     public function append(string $name, string|array $value): void {
+        if ($this->headersSent)
+            throw new \LogicException('Cannot set headers after they are sent');    
+
         if (!$this->hasHeader($name)) {
             $this->set($name, $value);
         } else {
@@ -92,23 +99,8 @@ class Response {
 
     /* ---------- Header Shorthands ---------- */
 
-    # format, links, location, type, vary
+    // TODO: attachment, format, links, location, type, vary
 
-    /* ---------- _______ ---------- */
-
-    public function app(): Application { return $this->app; }
-    public function locals(): array { return $this->locals; }
-    public function writeableEnded(): bool { return $this->writeableEnded; }
-
-    public function addLocalVar($var): void {
-        $this->locals[] = $var;
-    }
-
-
-    public function attachment(): void {
-
-    }
-            
     /* ---------- Status ---------- */
 
     public function status(int $code): Response {
@@ -118,5 +110,45 @@ class Response {
     }
 
     public function statusMessage(): string { return $this->statusMessage; }
+
+
+    /* ---------- Send ---------- */
+
+    public function send(array|string|bool|null $body = null): void {
+        if ($this->ended)
+            throw new \LogicException('Response already ended');
+        elseif ($this->headersSent)
+            throw new \LogicException('Cannot send headers after they are already sent');
+
+        $this->sendHeaders();
+        
+        if ($body)
+            echo $body;
+        elseif ($this->body) 
+            echo $this->body;
+    }
+
+    private function sendHeaders(): void {
+        header(sprintf('HTTP/1.1 %d %s', $this->statusCode, $this->statusMessage), true, $this->statusCode);
+
+        foreach ($this->headers as $name => $value) {
+            if (is_array($value)) {
+                foreach ($value as $v) {
+                    // TODO: seperate between headers that are comma separated vs. needs separate lines 
+                    header("$name: $v", false);
+                }
+            } else {
+                header("$name: $value", true);
+            }
+        }
+    }
+
+    public function sendStatus(int $statusCode): void {
+        $this->status($statusCode)->send();
+    }
+
+    // TODO: Implement with Swoole later to stream chunks of files
+    public function sendFile() { }
+    public function download(): void {}
 
 }

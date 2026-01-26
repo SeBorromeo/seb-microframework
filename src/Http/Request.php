@@ -5,7 +5,7 @@ class Request {
     private array $query;   
     private ?array $body = null; // lazy loaded
     private array $headers;
-    private array $server;
+    private array $serverParams;
     private array $attributes = [];
 
     private string $method;
@@ -24,7 +24,7 @@ class Request {
     private bool $secure;
 
     
-    public function __construct(array $serverParams = null) {
+    public function __construct(array|null $serverParams = null) {
         $this->serverParams = $serverParams ?? $_SERVER;
         $this->method = strtoupper($this->serverParams['REQUEST_METHOD'] ?? 'GET');
         $this->path = parse_url($this->serverParams['REQUEST_URI'] ?? '/', PHP_URL_PATH);
@@ -84,9 +84,10 @@ class Request {
         return isset($this->body()[$key]) || isset($this->query[$key]);
     }
 
-    public function is(string|array $val): string {
+    // TODO:
+    // public function is(string|array $val): string {
 
-    }
+    // }
 
     public function json(): array {
         if ($this->body === null) {
