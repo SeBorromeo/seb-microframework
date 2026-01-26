@@ -46,6 +46,7 @@ class Response {
 
     /* ---------- Headers ---------- */
     
+    public function get(string $name): string|array|null { return $this->getHeader($name); }
     public function getHeader(string $name): string|array|null {
         return $this->headers[$name];
     }
@@ -66,10 +67,8 @@ class Response {
         unset($this->headers[$name]);
     }
         
-    public function headersSent(): bool { return $this->headersSent; }
-    
-    public function header(string|array $nameOrObject, string|array|null $value = null): void { $this->set($nameOrObject, $value); }
-    public function set(string|array $nameOrObject, string|array|null $value = null): void {
+    public function set(string|array $nameOrObject, string|array|null $value = null): void { $this->header($nameOrObject, $value); }
+    public function header(string|array $nameOrObject, string|array|null $value = null): void {
         if (is_array($nameOrObject)) {
             foreach ($nameOrObject as $h => $v) {
                 $this->headers[$h] = $v;
@@ -79,17 +78,21 @@ class Response {
         }
     }
 
-    public function append(string $name, string|array $firstArg, string ...$extraArgs): void {
-        $valuesToAdd = is_array($firstArg) ? $firstArg : array_merge([$firstArg], $extraArgs);
-
+    public function append(string $name, string|array $value): void {
         if (!$this->hasHeader($name)) {
-            $this->set($name, count($valuesToAdd) === 1 ? $valuesToAdd[0] : $valuesToAdd);
-        }
-        else {
+            $this->set($name, $value);
+        } else {
             $existing = is_array($this->headers[$name]) ? $this->headers[$name] : [$this->headers[$name]];
+            $valuesToAdd = is_array($value) ? $value : [$value];
             $this->headers[$name] = array_merge($existing, $valuesToAdd);
         }
     }
+
+    public function headersSent(): bool { return $this->headersSent; }
+
+    /* ---------- Header Shorthands ---------- */
+
+    # format, links, location, type, vary
 
     /* ---------- _______ ---------- */
 

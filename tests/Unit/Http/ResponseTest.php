@@ -30,13 +30,46 @@ class ResponseTest extends TestCase {
         $this->assertContains('Accept', $res->getHeaderNames());
     }
 
-    public function testAppendHeader(): void {
+    public function testAppendHeaderStrToStr(): void {
         $res = new Response($this->app);
-        $res->append('Link', ['<http://localhost/>', '<http://localhost:3000/>']);
+        $res->set('Link', '<http://localhost/>');
+        $res->append('Link', '<http://localhost:3000/>');
 
-        $this->assertEquals(['Link'], $res->getHeaderNames());
         $this->assertEquals(
             ['Link' => ['<http://localhost/>', '<http://localhost:3000/>']],
+            $res->getHeaders()
+        );
+    }
+
+    public function testAppendHeaderListToStr(): void {
+        $res = new Response($this->app);
+        $res->set('Link', '<http://localhost:8000/>');
+        $res->append('Link', ['<http://localhost/>', '<http://localhost:3000/>']);
+
+        $this->assertEquals(
+            ['Link' => ['<http://localhost:8000/>', '<http://localhost/>', '<http://localhost:3000/>']],
+            $res->getHeaders()
+        );
+    }
+
+    public function testAppendHeaderListToList(): void {
+        $res = new Response($this->app);
+        $res->set('Link', ['<http://localhost:8000/>']);
+        $res->append('Link', ['<http://localhost/>', '<http://localhost:3000/>']);
+
+        $this->assertEquals(
+            ['Link' => ['<http://localhost:8000/>', '<http://localhost/>', '<http://localhost:3000/>']],
+            $res->getHeaders()
+        );
+    }
+
+    public function testAppendHeaderStrToList(): void {
+        $res = new Response($this->app);
+        $res->set('Link', ['<http://localhost:8000/>', '<http://localhost/>']);
+        $res->append('Link', '<http://localhost:3000/>');
+
+        $this->assertEquals(
+            ['Link' => ['<http://localhost:8000/>', '<http://localhost/>', '<http://localhost:3000/>']],
             $res->getHeaders()
         );
     }
