@@ -1,0 +1,52 @@
+<?php
+
+use PHPUnit\Framework\TestCase;
+use Sebastian\MicroFramework\Http\Response;
+use Sebastian\MicroFramework\Application;
+
+class ResponseTest extends TestCase {
+    private Application $app;
+
+    protected function setUp(): void {
+        parent::setUp();
+        $this->app = new Application();
+    }
+
+    public function testHeadersStartEmpty(): void {
+        $res = new Response($this->app);
+
+        $this->assertEquals([], $res->getHeaders());
+        $this->assertEquals([], $res->getHeaderNames());
+        $this->assertNull($res->getHeader('Accept'));
+        $this->assertFalse($res->hasHeader('Accept'));
+    }
+
+    public function testSetHeader(): void {
+        $res = new Response($this->app);
+        $res->set('Accept', ['text/html', 'application/json', 'image/png']);
+
+        $this->assertEquals(['text/html', 'application/json', 'image/png'], $res->getHeader('Accept'));
+        $this->assertTrue($res->hasHeader('Accept'));
+        $this->assertContains('Accept', $res->getHeaderNames());
+    }
+
+    public function testAppendHeader(): void {
+        $res = new Response($this->app);
+        $res->append('Link', ['<http://localhost/>', '<http://localhost:3000/>']);
+
+        $this->assertEquals(['Link'], $res->getHeaderNames());
+        $this->assertEquals(
+            ['Link' => ['<http://localhost/>', '<http://localhost:3000/>']],
+            $res->getHeaders()
+        );
+    }
+
+    public function testRemoveHeader(): void {
+        $res = new Response($this->app);
+        $res->set('Accept', ['text/html']);
+        $res->removeHeader('Accept');
+
+        $this->assertFalse($res->hasHeader('Accept'));
+        $this->assertNotContains('Accept', $res->getHeaderNames());
+    }
+}
