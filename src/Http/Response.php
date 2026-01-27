@@ -111,6 +111,16 @@ class Response {
 
     public function statusMessage(): string { return $this->statusMessage; }
 
+    /* ---------- Cookies ---------- */
+
+    public function cookie(string $name, string $value, array $options = []): void {
+        setcookie($name, $value, $options);
+    }
+
+    public function clearCookie(string $name, array $options = []) {
+        setcookie($name, '', array_merge(['expires'  => time() - 3600], $options));
+    }
+
 
     /* ---------- Send ---------- */
 
