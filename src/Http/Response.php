@@ -3,6 +3,7 @@
 use Sebastian\MicroFramework\Application;
 use Sebastian\MicroFramework\Exceptions\Http\ResponseAlreadySentException;
 use Sebastian\MicroFramework\Exceptions\Http\HeadersAlreadySentException;
+use Sebastian\MicroFramework\Exceptions\Http\InvalidRendererException;
 use Sebastian\MicroFramework\View\PhpRenderer;
 
 class Response {
@@ -136,7 +137,6 @@ class Response {
         }
         
         $engine = $this->app->get('view engine'); 
-
         if ($engine === 'php') {
             $viewsPath = rtrim($this->app->get('view path'), '/');
 
@@ -146,6 +146,8 @@ class Response {
             $renderer = new PhpRenderer($viewsPath);
             $this->set('Content-Type', $renderer->contentType());
             $html = $renderer->render($view, $locals);
+        } else {
+            throw new InvalidRendererException(sprintf('Renderer engine "%s" is not supported.', $engine));
         }
 
         if ($callback) 
