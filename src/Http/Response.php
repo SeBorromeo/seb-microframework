@@ -124,6 +124,46 @@ class Response {
         setcookie($name, '', array_merge(['expires'  => time() - 3600], $options));
     }
 
+    /* ---------- View ---------- */
+
+    public function render(string $view, ?array $locals = [], ?callable $callback = null): void {
+        if ($this->ended) 
+            throw new ResponseAlreadySentException();
+
+        foreach ($locals as $key => $val) {
+            $this->addLocalVar($key, $val);
+        }
+        
+        $engine = $this->app->get('view engine', 'php');
+        $viewsPath = rtrim($this->app->get('view path'), '/');
+        if (!$viewsPath) 
+            throw new \LogicException('Views directory not configured.');
+
+        // TODO: only use engine end if no . already in view
+        $file = "{$viewsPath}/{$view}.{$engine}";
+
+        if (!is_file($file)) 
+            throw new \RuntimeException("View not found: {$file}");
+
+        extract($locals, EXTR_SKIP);
+
+        ob_start();
+        require $file;
+        $html = ob_get_clean();
+
+        if ($callback) 
+            $callback(null, $html);
+
+        $this->send($html);
+    }
+
+    public function locals(): array {
+        return $this->locals;
+    }
+
+    public function addLocalVar($key, $val): void {
+        $this->locals[$key] = $val;
+    }
 
     /* ---------- Send ---------- */
 
@@ -174,7 +214,8 @@ class Response {
         $this->sendBody();
         $this->ended = True;
 
-        $callback();
+        if ($callback)
+            $callback();
 
         # TODO: close socket once Swoole implemented
     }
