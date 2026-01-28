@@ -3,6 +3,7 @@
 use Sebastian\MicroFramework\Application;
 use Sebastian\MicroFramework\Exceptions\Http\ResponseAlreadySentException;
 use Sebastian\MicroFramework\Exceptions\Http\HeadersAlreadySentException;
+use Sebastian\MicroFramework\View\PhpRenderer;
 
 class Response {
     private Application $app;
@@ -134,27 +135,23 @@ class Response {
             $this->addLocalVar($key, $val);
         }
         
-        $engine = $this->app->get('view engine', 'php');
-        $viewsPath = rtrim($this->app->get('view path'), '/');
-        if (!$viewsPath) 
-            throw new \LogicException('Views directory not configured.');
+        $engine = $this->app->get('view engine'); 
 
-        // TODO: only use engine end if no . already in view
-        $file = "{$viewsPath}/{$view}.{$engine}";
+        if ($engine === 'php') {
+            $viewsPath = rtrim($this->app->get('view path'), '/');
 
-        if (!is_file($file)) 
-            throw new \RuntimeException("View not found: {$file}");
+            if (!$viewsPath) 
+                throw new \LogicException('Views directory not configured.');
 
-        extract($locals, EXTR_SKIP);
-
-        ob_start();
-        require $file;
-        $html = ob_get_clean();
+            $renderer = new PhpRenderer($viewsPath);
+            $this->set('Content-Type', $renderer->contentType());
+            $html = $renderer->render($view, $locals);
+        }
 
         if ($callback) 
             $callback(null, $html);
-
-        $this->send($html);
+        else
+            $this->send($html);
     }
 
     public function locals(): array {
