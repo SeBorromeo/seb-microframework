@@ -1,6 +1,6 @@
 {
-  "name": "sebastian/php-micro-framework",
-  "description": "A lightweight PHP micro-framework inspired by Express",
+  "name": "sebastian/seb-microframework",
+  "description": "'Seb', a lightweight PHP micro-framework inspired by Express",
   "type": "library",
   "license": "MIT",
   "autoload": {
