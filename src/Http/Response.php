@@ -1,6 +1,8 @@
 <?php namespace Sebastian\MicroFramework\Http;
 
 use Sebastian\MicroFramework\Application;
+use Sebastian\MicroFramework\Exceptions\Http\ResponseAlreadySentException;
+use Sebastian\MicroFramework\Exceptions\Http\HeadersAlreadySentException;
 
 class Response {
     private Application $app;
@@ -71,7 +73,7 @@ class Response {
     public function set(string|array $nameOrArray, string|array|null $value = null): void { $this->header($nameOrArray, $value); }
     public function header(string|array $nameOrArray, string|array|null $value = null): void {
         if ($this->headersSent)
-            throw new \LogicException('Cannot set headers after they are sent');
+            throw new HeadersAlreadySentException();
 
         if (is_array($nameOrArray)) {
             foreach ($nameOrArray as $h => $v) {
@@ -85,7 +87,7 @@ class Response {
 
     public function append(string $name, string|array $value): void {
         if ($this->headersSent)
-            throw new \LogicException('Cannot set headers after they are sent');    
+            throw new HeadersAlreadySentException();   
 
         if (!$this->hasHeader($name)) {
             $this->set($name, $value);
@@ -127,7 +129,7 @@ class Response {
 
     public function send(array|string|bool|null $body = null): Response {
         if ($this->ended)
-            throw new \LogicException('Response already ended');
+            throw new ResponseAlreadySentException();
 
         if ($body !== null) {
             if (!$this->hasHeader('Content-Type')) {
@@ -161,7 +163,7 @@ class Response {
 
     public function end(?string $data = null, ?callable $callback = null): void {
         if ($this->ended)
-            throw new \LogicException('Response already ended');
+            throw new ResponseAlreadySentException();
 
         if ($data !== null && $this->body === null)
             $this->body = $data;
@@ -216,7 +218,7 @@ class Response {
 
     private function sendHeaders(): void {
         if ($this->headersSent)
-            throw new \LogicException('Cannot send headers after they are already sent');
+            throw new HeadersAlreadySentException();
 
         header(sprintf('HTTP/1.1 %d %s', $this->statusCode, $this->statusMessage), true, $this->statusCode);
 
