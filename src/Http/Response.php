@@ -5,6 +5,7 @@ use Sebastian\MicroFramework\Exceptions\Http\ResponseAlreadySentException;
 use Sebastian\MicroFramework\Exceptions\Http\HeadersAlreadySentException;
 use Sebastian\MicroFramework\Exceptions\Http\InvalidRendererException;
 use Sebastian\MicroFramework\View\PhpRenderer;
+use Sebastian\MicroFramework\View\PugRenderer;
 
 class Response {
     private Application $app;
@@ -135,20 +136,23 @@ class Response {
         foreach ($locals as $key => $val) {
             $this->addLocalVar($key, $val);
         }
+
+        $viewsPath = rtrim($this->app->get('view path'), '/');
+
+        if (!$viewsPath)
+            throw new \LogicException('Views directory not configured.');
         
         $engine = $this->app->get('view engine'); 
         if ($engine === 'php') {
-            $viewsPath = rtrim($this->app->get('view path'), '/');
-
-            if (!$viewsPath) 
-                throw new \LogicException('Views directory not configured.');
-
             $renderer = new PhpRenderer($viewsPath);
-            $this->set('Content-Type', $renderer->contentType());
-            $html = $renderer->render($view, $locals);
+        } elseif ($engine === 'pug') {
+            $renderer = new PugRenderer($viewsPath);
         } else {
             throw new InvalidRendererException(sprintf('Renderer engine "%s" is not supported.', $engine));
         }
+
+        $this->set('Content-Type', $renderer->contentType());
+        $html = $renderer->render($view, $locals);
 
         if ($callback) 
             $callback(null, $html);
