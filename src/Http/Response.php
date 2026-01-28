@@ -63,7 +63,7 @@ class Response {
     }
     
     public function hasHeader($name): bool {
-        return isset($this->headers[$name]);
+        return isset($this->headers[strtolower($name)]);
     }
         
     public function removeHeader($name): void {
