@@ -124,21 +124,98 @@ class Response {
 
     /* ---------- Send ---------- */
 
-    public function send(array|string|bool|null $body = null): void {
+    public function send(array|string|bool|null $body = null): Response {
         if ($this->ended)
             throw new \LogicException('Response already ended');
-        elseif ($this->headersSent)
-            throw new \LogicException('Cannot send headers after they are already sent');
 
-        $this->sendHeaders();
-        
-        if ($body)
-            echo $body;
-        elseif ($this->body) 
-            echo $this->body;
+        if ($body !== null) {
+            if (!$this->hasHeader('Content-Type')) {
+                $this->set('Content-Type', $this->inferContentType($body));
+                $this->setCharset();
+            }
+
+            $this->body = $this->normalizeBody($body);
+
+            if (!$this->hasHeader('Content-Length')) 
+                $this->set('Content-Length', strlen($this->body));
+        }
+
+        $this->end();
+        return $this;
+    }
+
+    public function json(array|string|bool|int|null $data): Response {
+        $this->body = json_encode($data);
+        $this->header('Content-Type', 'application/json');
+        return $this->send();
+    }
+
+    // TODO: Implement with Swoole later to stream chunks of files
+    public function sendFile() {}
+    public function download(): void {}
+
+    public function end(?string $data = null, ?callable $callback = null): void {
+        if ($this->ended)
+            throw new \LogicException('Response already ended');
+
+        if ($data !== null && $this->body === null)
+            $this->body = $data;
+
+        if (!$this->headersSent) 
+            $this->sendHeaders();
+
+        $this->sendBody();
+        $this->ended = True;
+
+        $callback();
+
+        # TODO: close socket once Swoole implemented
+    }
+
+    public function ended(): bool { return $this->ended; }
+
+    /* ---------- Send Private Helper Functions ---------- */
+
+    private function inferContentType(array|string|object|bool $body) {
+        return match (true) {
+            is_array($body), is_object($body) => 'application/json',
+            is_bool($body)                   => 'text/plain',
+            is_string($body)                 => 'text/plain',
+            default                           => 'application/octet-stream',
+        };
+    }
+
+    private function normalizeBody(array|string|object|bool|null $body): string {
+        if (is_array($body) || is_object($body)) {
+            $this->set('Content-Type', 'application/json');
+            return json_encode($body, JSON_THROW_ON_ERROR);
+        }
+
+        if (is_bool($body)) 
+            return $body ? '1' : '0';
+
+        if ($body === null) 
+            return '';
+
+        return (string) $body;
+    }
+
+    private function setCharset(): void {
+        if (!$this->hasHeader('Content-Type')) return;
+
+        $contentType = $this->getHeader('Content-Type');
+
+        if (str_starts_with($contentType, 'text/') || $contentType === 'application/json') {
+            if (!str_contains($contentType, 'charset=')) {
+                $this->set('Content-Type', $contentType . '; charset=utf-8');
+            }
+        }
     }
 
     private function sendHeaders(): void {
+        if ($this->headersSent)
+            throw new \LogicException('Cannot send headers after they are already sent');
+
         header(sprintf('HTTP/1.1 %d %s', $this->statusCode, $this->statusMessage), true, $this->statusCode);
 
         foreach ($this->headers as $name => $value) {
@@ -153,12 +230,11 @@ class Response {
         }
     }
 
-    public function sendStatus(int $statusCode): void {
-        $this->status($statusCode)->send();
+    private function sendBody(): void {
+        echo $this->body ?? '';
+    } 
+
+    public function sendStatus(int $statusCode): Response {
+        return $this->status($statusCode)->send();
     }
-
-    // TODO: Implement with Swoole later to stream chunks of files
-    public function sendFile() { }
-    public function download(): void {}
-
 }
