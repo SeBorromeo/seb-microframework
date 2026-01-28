@@ -63,8 +63,7 @@ class Request {
     }
 
     // Body/Input data
-    public function input(?string $key = null, $default = null)
-    {
+    public function input(?string $key = null, $default = null) {
         $body = $this->body();
 
         if ($key === null) {
@@ -74,13 +73,11 @@ class Request {
         return $body[$key] ?? $default;
     }
 
-    public function all(): array
-    {
+    public function all(): array {
         return array_merge($this->query, $this->body());
     }
 
-    public function has(string $key): bool
-    {
+    public function has(string $key): bool {
         return isset($this->body()[$key]) || isset($this->query[$key]);
     }
 
