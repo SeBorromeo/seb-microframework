@@ -68,17 +68,18 @@ class Response {
         unset($this->headers[$name]);
     }
         
-    public function set(string|array $nameOrObject, string|array|null $value = null): void { $this->header($nameOrObject, $value); }
-    public function header(string|array $nameOrObject, string|array|null $value = null): void {
+    public function set(string|array $nameOrArray, string|array|null $value = null): void { $this->header($nameOrArray, $value); }
+    public function header(string|array $nameOrArray, string|array|null $value = null): void {
         if ($this->headersSent)
             throw new \LogicException('Cannot set headers after they are sent');
 
-        if (is_array($nameOrObject)) {
-            foreach ($nameOrObject as $h => $v) {
+        if (is_array($nameOrArray)) {
+            foreach ($nameOrArray as $h => $v) {
                 $this->headers[$h] = $v;
             } 
         } else {
-            $this->headers[$nameOrObject] = $value;
+            $name = strtolower($nameOrArray);
+            $this->headers[$name] = $value;
         }
     }
 
@@ -150,6 +151,10 @@ class Response {
         return $this->send();
     }
 
+    public function sendStatus(int $statusCode): Response {
+        return $this->status($statusCode)->send();
+    }
+
     // TODO: Implement with Swoole later to stream chunks of files
     public function sendFile() {}
     public function download(): void {}
@@ -185,7 +190,7 @@ class Response {
         };
     }
 
-    private function normalizeBody(array|string|object|bool|null $body): string {
+    private function normalizeBody(array|string|object|bool $body): string {
         if (is_array($body) || is_object($body)) {
             $this->set('Content-Type', 'application/json');
             return json_encode($body, JSON_THROW_ON_ERROR);
@@ -193,9 +198,6 @@ class Response {
 
         if (is_bool($body)) 
             return $body ? '1' : '0';
-
-        if ($body === null) 
-            return '';
 
         return (string) $body;
     }
@@ -233,8 +235,4 @@ class Response {
     private function sendBody(): void {
         echo $this->body ?? '';
     } 
-
-    public function sendStatus(int $statusCode): Response {
-        return $this->status($statusCode)->send();
-    }
 }
