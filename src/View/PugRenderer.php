@@ -3,7 +3,7 @@
 namespace Sebastian\MicroFramework\View;
 
 use Pug\Pug;
-use RuntimeException;
+use Sebastian\MicroFramework\Exceptions\Http\ViewNotFoundException;
 
 class PugRenderer implements RendererInterface {
     private Pug $pug;
@@ -19,7 +19,7 @@ class PugRenderer implements RendererInterface {
         $file = rtrim($this->basePath, '/') . '/' . $view . '.pug';
 
         if (!is_file($file)) {
-            throw new RuntimeException("View not found: {$view}");
+            throw new ViewNotFoundException($view);
         }
 
         return $this->pug->render($file, $data);

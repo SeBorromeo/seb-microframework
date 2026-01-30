@@ -2,7 +2,7 @@
 
 namespace Sebastian\MicroFramework\View;
 
-use RuntimeException;
+use Sebastian\MicroFramework\Exceptions\Http\ViewNotFoundException;
 
 class PhpRenderer implements RendererInterface {
     public function __construct(
@@ -14,7 +14,7 @@ class PhpRenderer implements RendererInterface {
         $file = rtrim($this->basePath, '/') . '/' . $view . '.php';
 
         if (!is_file($file)) 
-            throw new RuntimeException("View not found: {$view}");
+            throw new ViewNotFoundException($view);
 
         extract($data, EXTR_SKIP);
 

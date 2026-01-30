@@ -148,7 +148,7 @@ class Response {
         } elseif ($engine === 'pug') {
             $renderer = new PugRenderer($viewsPath);
         } else {
-            throw new InvalidRendererException(sprintf('Renderer engine "%s" is not supported.', $engine));
+            throw new InvalidRendererException($engine);
         }
 
         $this->set('Content-Type', $renderer->contentType());
