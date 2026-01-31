@@ -2,19 +2,9 @@
 
 namespace Sebastian\MicroFramework\View;
 
-use Sebastian\MicroFramework\Exceptions\Http\ViewNotFoundException;
-
-class PhpRenderer implements RendererInterface {
-    public function __construct(
-        private string $basePath
-    ) {}
-
+class PhpRenderer extends AbstractRenderer {
     public function render(string $view, array $data = []): string {
-        // TODO: remove .php if already there
-        $file = rtrim($this->basePath, '/') . '/' . $view . '.php';
-
-        if (!is_file($file)) 
-            throw new ViewNotFoundException($view);
+        $file = $this->resolveView($view, '.php');
 
         extract($data, EXTR_SKIP);
 

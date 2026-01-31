@@ -5,10 +5,11 @@ namespace Sebastian\MicroFramework\View;
 use Pug\Pug;
 use Sebastian\MicroFramework\Exceptions\Http\ViewNotFoundException;
 
-class PugRenderer implements RendererInterface {
+class PugRenderer extends AbstractRenderer {
     private Pug $pug;
 
     public function __construct(private string $basePath) {
+        parent::__construct();
         $this->pug = new Pug([
             'basedir' => $this->basePath,
             'cache'   => false, // TODO: Figure this out
@@ -16,12 +17,7 @@ class PugRenderer implements RendererInterface {
     }
 
     public function render(string $view, array $data = []): string {
-        $file = rtrim($this->basePath, '/') . '/' . $view . '.pug';
-
-        if (!is_file($file)) {
-            throw new ViewNotFoundException($view);
-        }
-
+        $file = $this->resolveView($view, '.pug');
         return $this->pug->render($file, $data);
     }
 
