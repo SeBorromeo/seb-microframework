@@ -1,6 +1,4 @@
-<?php
-
-namespace Sebastian\MicroFramework\Exceptions\Http;
+<?php namespace Sebastian\MicroFramework\Exceptions\Http;
 
 class InvalidRendererException extends \LogicException
 {
