@@ -31,7 +31,7 @@ class ResponseTest extends TestCase {
 
         $this->assertEquals(['text/html', 'application/json', 'image/png'], $res->getHeader('Accept'));
         $this->assertTrue($res->hasHeader('Accept'));
-        $this->assertContains('Accept', $res->getHeaderNames());
+        $this->assertContains('accept', $res->getHeaderNames());
     }
 
     public function testAppendHeaderStrToStr(): void {
@@ -40,7 +40,7 @@ class ResponseTest extends TestCase {
         $res->append('Link', '<http://localhost:3000/>');
 
         $this->assertEquals(
-            ['Link' => ['<http://localhost/>', '<http://localhost:3000/>']],
+            ['link' => ['<http://localhost/>', '<http://localhost:3000/>']],
             $res->getHeaders()
         );
     }
@@ -51,7 +51,7 @@ class ResponseTest extends TestCase {
         $res->append('Link', ['<http://localhost/>', '<http://localhost:3000/>']);
 
         $this->assertEquals(
-            ['Link' => ['<http://localhost:8000/>', '<http://localhost/>', '<http://localhost:3000/>']],
+            ['link' => ['<http://localhost:8000/>', '<http://localhost/>', '<http://localhost:3000/>']],
             $res->getHeaders()
         );
     }
@@ -62,7 +62,7 @@ class ResponseTest extends TestCase {
         $res->append('Link', ['<http://localhost/>', '<http://localhost:3000/>']);
 
         $this->assertEquals(
-            ['Link' => ['<http://localhost:8000/>', '<http://localhost/>', '<http://localhost:3000/>']],
+            ['link' => ['<http://localhost:8000/>', '<http://localhost/>', '<http://localhost:3000/>']],
             $res->getHeaders()
         );
     }
@@ -73,7 +73,7 @@ class ResponseTest extends TestCase {
         $res->append('Link', '<http://localhost:3000/>');
 
         $this->assertEquals(
-            ['Link' => ['<http://localhost:8000/>', '<http://localhost/>', '<http://localhost:3000/>']],
+            ['link' => ['<http://localhost:8000/>', '<http://localhost/>', '<http://localhost:3000/>']],
             $res->getHeaders()
         );
     }

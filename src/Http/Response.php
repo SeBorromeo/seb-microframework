@@ -55,7 +55,7 @@ class Response {
     
     public function get(string $name): string|array|null { return $this->getHeader($name); }
     public function getHeader(string $name): string|array|null {
-        return $this->headers[$name];
+        return $this->headers[strtolower($name)];
     }
         
     public function getHeaderNames(): array {
@@ -71,7 +71,7 @@ class Response {
     }
         
     public function removeHeader($name): void {
-        unset($this->headers[$name]);
+        unset($this->headers[strtolower($name)]);
     }
         
     public function set(string|array $nameOrArray, string|array|null $value = null): void { $this->header($nameOrArray, $value); }
@@ -92,6 +92,8 @@ class Response {
     public function append(string $name, string|array $value): void {
         if ($this->headersSent)
             throw new HeadersAlreadySentException();   
+        
+        $name = strtolower($name);
 
         if (!$this->hasHeader($name)) {
             $this->set($name, $value);
