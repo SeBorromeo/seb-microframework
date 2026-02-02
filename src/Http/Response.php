@@ -115,6 +115,8 @@ class Response {
         return $this;
     }
 
+    public function statusCode(): int { return $this->statusCode; }
+
     public function statusMessage(): string { return $this->statusMessage; }
 
     /* ---------- Cookies ---------- */

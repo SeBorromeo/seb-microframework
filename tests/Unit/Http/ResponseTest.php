@@ -12,6 +12,8 @@ class ResponseTest extends TestCase {
         $this->app = new Application();
     }
 
+    /* ---------- Headers ---------- */
+
     public function testHeadersStartEmpty(): void {
         $res = new Response($this->app);
 
@@ -82,4 +84,21 @@ class ResponseTest extends TestCase {
         $this->assertFalse($res->hasHeader('Accept'));
         $this->assertNotContains('Accept', $res->getHeaderNames());
     }
+
+    /* ---------- Status ---------- */
+
+    public function testDefaultStatus(): void {
+        $res = new Response($this->app);
+        $this->assertSame(200, $res->statusCode());
+        $this->assertSame('OK', $res->statusMessage());
+    }
+        
+    public function testSetStatusAndDefaultMessage(): void {
+        $res = new Response($this->app);
+        $res->status(404);
+        $this->assertSame(404, $res->statusCode());
+        $this->assertSame('Not Found', $res->statusMessage());
+    }
+
+    
 }
