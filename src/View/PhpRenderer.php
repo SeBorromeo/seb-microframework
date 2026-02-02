@@ -3,7 +3,7 @@
 namespace Sebastian\MicroFramework\View;
 
 class PhpRenderer extends AbstractRenderer {
-    public function __construct(private string $basePath) {
+    public function __construct(string $basePath) {
         parent::__construct($basePath, '.php');
     }
 

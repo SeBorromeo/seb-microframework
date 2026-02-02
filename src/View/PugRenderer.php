@@ -8,7 +8,7 @@ use Sebastian\MicroFramework\Exceptions\Http\ViewNotFoundException;
 class PugRenderer extends AbstractRenderer {
     private Pug $pug;
 
-    public function __construct(private string $basePath) {
+    public function __construct(string $basePath) {
         parent::__construct($basePath, '.pug');
         $this->pug = new Pug([
             'basedir' => $basePath,
