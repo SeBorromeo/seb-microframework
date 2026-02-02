@@ -11,18 +11,38 @@ final class Application {
         'x-powered-by' => true
     ];
 
-    public function set(string $key, mixed $value): void {
-        $this->settings[$key] = $value;
-    }
-
-    public function get(string $key, mixed $default = null): mixed {
-        return $this->settings[$key] ?? $default;
-    }
-
     public function __construct() {
-        $this->set('env', getenv('APP_ENV') ?: 'development');
+        $appEnv = getenv('APP_ENV'); 
+        $this->set('env', $appEnv ?: 'development');
+        if ($appEnv == 'production')
+            $this->set('view cache', true);
+
         $this->set('views', getcwd() . '/views');
     }
 
-    
+    /* ---------- Settings ---------- */
+
+    public function set(string $name, mixed $value): void {
+        $this->settings[$name] = $value;
+    }
+
+    public function get(string $name, mixed $default = null): mixed {
+        return $this->settings[$name] ?? $default;
+    }  
+
+    public function disable(string $name): void {
+        $this->set($name, false);
+    }
+
+    public function disabled(string $name): bool {
+        return $this->get($name) == false;
+    }
+
+    public function enable(string $name): void {
+        $this->set($name, true);
+    }
+
+    public function enabled(string $name): bool {
+        return $this->get($name) == true;
+    }
 }
