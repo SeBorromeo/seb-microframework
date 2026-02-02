@@ -3,6 +3,8 @@
 use PHPUnit\Framework\TestCase;
 use Sebastian\MicroFramework\Http\Response;
 use Sebastian\MicroFramework\Application;
+use Sebastian\MicroFramework\Exceptions\Http\InvalidRendererException;
+use Sebastian\MicroFramework\View\AbstractRenderer;
 
 class ResponseTest extends TestCase {
     private Application $app;
@@ -96,8 +98,60 @@ class ResponseTest extends TestCase {
     public function testSetStatusAndDefaultMessage(): void {
         $res = new Response($this->app);
         $res->status(404);
+
         $this->assertSame(404, $res->statusCode());
         $this->assertSame('Not Found', $res->statusMessage());
+    }
+
+    /* ---------- View ---------- */
+
+    public function testAddLocalViewVariable(): void {
+        $res = new Response($this->app);
+        $res->addLocalVar('name', 'Sebastian');
+
+        $this->assertEquals(['name' => 'Sebastian'], $res->locals());
+        
+        $res->addLocalVar('name', 'Seb');
+
+        $this->assertEquals(['name' => 'Seb'], $res->locals());
+    }
+
+    public function testLocalsAddedWithRender(): void {
+        $this->app->set('view engine', 'php');
+        $res = $this->getMockBuilder(Response::class)
+            ->setConstructorArgs([$this->app])
+            ->onlyMethods(['createRenderer'])
+            ->getMock();
+
+        $mockRenderer = $this->createMock(AbstractRenderer::class);
+
+        $res->method('createRenderer')->willReturn($mockRenderer);
+
+        $res->render('index.php', ['name' => 'Sebastian']);
+
+        $this->assertEquals(['name' => 'Sebastian'], $res->locals());
+    }
+
+    public function testRenderThrowsWhenViewPathNotConfigured(): void {
+        $this->app->set('view path', null);
+        $res = new Response($this->app);
+        $this->expectException(\LogicException::class);
+        $res->render('index.php', ['name' => 'Sebastian']);
+    }
+
+    public function testRenderThrowsWhenRendererNull(): void {
+        $res = new Response($this->app);
+        $this->expectException(InvalidRendererException::class);
+        $this->expectExceptionMessage('engine must not be null');
+        $res->render('index.php', ['name' => 'Sebastian']);
+    }
+
+    public function testRenderThrowsWhenInvalidRenderer(): void {
+        $this->app->set('view engine', 'txt');
+        $res = new Response($this->app);
+        $this->expectException(InvalidRendererException::class);
+        $this->expectExceptionMessage('is not supported');
+        $res->render('index.php', ['name' => 'Sebastian']);
     }
 
     

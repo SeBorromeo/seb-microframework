@@ -4,6 +4,7 @@ use Sebastian\MicroFramework\Application;
 use Sebastian\MicroFramework\Exceptions\Http\ResponseAlreadySentException;
 use Sebastian\MicroFramework\Exceptions\Http\HeadersAlreadySentException;
 use Sebastian\MicroFramework\Exceptions\Http\InvalidRendererException;
+use Sebastian\MicroFramework\View\AbstractRenderer;
 use Sebastian\MicroFramework\View\PhpRenderer;
 use Sebastian\MicroFramework\View\PugRenderer;
 
@@ -142,16 +143,9 @@ class Response {
         $viewsPath = rtrim($this->app->get('view path'), '/');
 
         if (!$viewsPath)
-            throw new \LogicException('Views directory not configured.');
+            throw new \LogicException("Views path not configured. Set using \$app->set('view path', {path}).");
         
-        $engine = $this->app->get('view engine'); 
-        if ($engine === 'php') {
-            $renderer = new PhpRenderer($viewsPath);
-        } elseif ($engine === 'pug') {
-            $renderer = new PugRenderer($viewsPath);
-        } else {
-            throw new InvalidRendererException($engine);
-        }
+        $renderer = $this->createRenderer($viewsPath);
 
         $this->set('Content-Type', $renderer->contentType());
         $html = $renderer->render($view, $locals);
@@ -162,11 +156,22 @@ class Response {
             $this->send($html);
     }
 
+    protected function createRenderer($viewsPath): AbstractRenderer {
+        $engine = $this->app->get('view engine');
+        if ($engine === 'php') {
+            return new PhpRenderer($viewsPath);
+        } elseif ($engine === 'pug') {
+            return new PugRenderer($viewsPath);
+        } else {
+            throw new InvalidRendererException($engine);
+        }
+    }
+
     public function locals(): array {
         return $this->locals;
     }
 
-    public function addLocalVar($key, $val): void {
+    public function addLocalVar(string $key, string $val): void {
         $this->locals[$key] = $val;
     }
 
