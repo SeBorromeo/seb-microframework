@@ -142,10 +142,10 @@ class Response {
             $this->addLocalVar($key, $val);
         }
 
-        $viewsPath = rtrim($this->app->get('view path'), '/');
+        $viewsPath = rtrim($this->app->get('views'), '/');
 
         if (!$viewsPath)
-            throw new \LogicException("Views path not configured. Set using \$app->set('view path', {path}).");
+            throw new \LogicException("Views path not configured. Set using \$app->set('views', {path}).");
         
         $renderer = $this->createRenderer($viewsPath);
 

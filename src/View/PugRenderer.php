@@ -1,9 +1,6 @@
-<?php
-
-namespace Sebastian\MicroFramework\View;
+<?php namespace Sebastian\MicroFramework\View;
 
 use Pug\Pug;
-use Sebastian\MicroFramework\Exceptions\Http\ViewNotFoundException;
 
 class PugRenderer extends AbstractRenderer {
     private Pug $pug;

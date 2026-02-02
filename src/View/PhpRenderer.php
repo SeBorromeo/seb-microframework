@@ -1,6 +1,4 @@
-<?php
-
-namespace Sebastian\MicroFramework\View;
+<?php namespace Sebastian\MicroFramework\View;
 
 class PhpRenderer extends AbstractRenderer {
     public function __construct(string $basePath) {
