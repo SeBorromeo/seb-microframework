@@ -1,7 +1,15 @@
 <?php namespace Sebastian\MicroFramework;
 
-final class Application {
-    protected array $settings = [
+use LogicException;
+use Sebastian\MicroFramework\Exceptions\Application\InvalidEngineException;
+use Sebastian\MicroFramework\Routing\Router;
+use Sebastian\MicroFramework\View\Engine\EngineInterface;
+use Sebastian\MicroFramework\View\Engine\PhpEngine;
+use Sebastian\MicroFramework\View\Engine\PugEngine;
+
+class Application {
+    private array $locals = [];
+    private array $settings = [
         'env' => 'development',
         'etag' => 'weak',
         'jsonp callback name' => 'callback',
@@ -11,6 +19,9 @@ final class Application {
         'x-powered-by' => true
     ];
 
+    private array $viewEngines;
+    private array $viewEngineInstances = [];
+
     public function __construct() {
         $appEnv = getenv('APP_ENV'); 
         $this->set('env', $appEnv ?: 'development');
@@ -18,6 +29,11 @@ final class Application {
             $this->set('view cache', true);
 
         $this->set('views', getcwd() . '/views');
+
+        $this->viewEngines = [
+            'pug' => PugEngine::class,
+            'php' => PhpEngine::class,
+        ];
     }
 
     /* ---------- Settings ---------- */
@@ -44,5 +60,45 @@ final class Application {
 
     public function enabled(string $name): bool {
         return $this->get($name) == true;
+    }
+
+    /* ---------- View ---------- */
+
+    // TODO: Move render functionality from Response to here.
+    /* Express Docs:
+        Think of app.render() as a utility function for generating rendered view strings. 
+        Internally res.render() uses app.render() to render views.
+    */
+    public function render(string $view, ?array $locals = [], ?callable $callback = null): string {
+        return '';
+    }
+
+    public function locals(): array {
+        return $this->locals;
+    }
+
+    public function addLocalVar(string $key, string $val): void {
+        $this->locals[$key] = $val;
+    }
+
+    /* ---------- View Engines ---------- */
+
+    public function engine(string $ext, callable $engine): void {
+        $this->viewEngines[$ext] = $engine;
+    }
+
+    public function getEngine(string $ext): EngineInterface {
+        if (isset($this->engineInstances[$ext])) 
+            return $this->viewEngineInstances[$ext];
+
+        if (!isset($this->engines[$ext])) 
+            throw new InvalidEngineException("No engine registered for extension: $ext");
+
+        $engine = $this->viewEngines[$ext];
+
+        if (is_callable($engine)) 
+            $this->viewEngineInstances[$ext] = $engine();
+
+        return $this->viewEngineInstances[$ext];
     }
 }

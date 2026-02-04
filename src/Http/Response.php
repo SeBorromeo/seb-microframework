@@ -3,10 +3,7 @@
 use Sebastian\MicroFramework\Application;
 use Sebastian\MicroFramework\Exceptions\Http\ResponseAlreadySentException;
 use Sebastian\MicroFramework\Exceptions\Http\HeadersAlreadySentException;
-use Sebastian\MicroFramework\Exceptions\Http\InvalidRendererException;
-use Sebastian\MicroFramework\View\AbstractRenderer;
-use Sebastian\MicroFramework\View\PhpRenderer;
-use Sebastian\MicroFramework\View\PugRenderer;
+use Sebastian\MicroFramework\Exceptions\View\ViewNotFoundException;
 
 class Response {
     private Application $app;
@@ -142,15 +139,14 @@ class Response {
             $this->addLocalVar($key, $val);
         }
 
-        $viewsPath = rtrim($this->app->get('views'), '/');
+        $ext = $this->getExtension($view);
 
-        if (!$viewsPath)
-            throw new \LogicException("Views path not configured. Set using \$app->set('views', {path}).");
-        
-        $renderer = $this->createRenderer($viewsPath);
+        $engine = $this->app->getEngine($ext);
 
-        $this->set('Content-Type', $renderer->contentType());
-        $html = $renderer->render($view, $locals);
+        $path = $this->resolvePath($view, $ext);
+
+        $this->set('Content-Type', 'text/html; charset=utf-8');
+        $html = $engine->render($path, $locals);    
 
         if ($callback) 
             $callback(null, $html);
@@ -158,15 +154,34 @@ class Response {
             $this->send($html);
     }
 
-    protected function createRenderer($viewsPath): AbstractRenderer {
-        $engine = $this->app->get('view engine');
-        if ($engine === 'php') {
-            return new PhpRenderer($viewsPath);
-        } elseif ($engine === 'pug') {
-            return new PugRenderer($viewsPath);
-        } else {
-            throw new InvalidRendererException($engine);
-        }
+    protected function getExtension(string $view): string {
+        if (str_contains($view, '.')) 
+            return pathinfo($view, PATHINFO_EXTENSION);
+
+        $viewEngine = $this->app->get('view engine');
+        if (!$viewEngine)
+            throw new \LogicException("No view engine defined. Set using \$app->set('view engine', {engine}).");
+
+        return $viewEngine;
+    }
+
+    protected function resolvePath(string $view, string $ext): string {
+        $viewsDir = rtrim($this->app->get('views'), '/');
+
+        if (!$viewsDir)
+            throw new \LogicException("Views directory not configured. Set using \$app->set('views', {path}).");
+
+        $viewPath = str_replace('.', '/', $view);
+
+        if (!str_ends_with($viewPath, ".$ext")) 
+            $viewPath .= ".$ext";
+
+        $fullPath = "$viewsDir/$viewPath";
+
+        if (!file_exists($fullPath)) 
+            throw new ViewNotFoundException($fullPath);
+
+        return $fullPath;
     }
 
     public function locals(): array {

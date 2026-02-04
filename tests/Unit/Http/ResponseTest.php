@@ -3,8 +3,9 @@
 use PHPUnit\Framework\TestCase;
 use Sebastian\MicroFramework\Http\Response;
 use Sebastian\MicroFramework\Application;
-use Sebastian\MicroFramework\Exceptions\Http\InvalidRendererException;
+use Sebastian\MicroFramework\Exceptions\Application\InvalidEngineException;
 use Sebastian\MicroFramework\View\AbstractRenderer;
+use Sebastian\MicroFramework\View\Engine\PhpEngine;
 
 class ResponseTest extends TestCase {
     private Application $app;
@@ -102,6 +103,9 @@ class ResponseTest extends TestCase {
         $this->assertSame(404, $res->statusCode());
         $this->assertSame('Not Found', $res->statusMessage());
     }
+    
+    /* ---------- Cookies ---------- */
+
 
     /* ---------- View ---------- */
 
@@ -117,15 +121,20 @@ class ResponseTest extends TestCase {
     }
 
     public function testLocalsAddedWithRender(): void {
-        $this->app->set('view engine', 'php');
-        $res = $this->getMockBuilder(Response::class)
-            ->setConstructorArgs([$this->app])
-            ->onlyMethods(['createRenderer'])
+        $mockApp = $this->getMockBuilder(Application::class)
+            ->onlyMethods(['getEngine'])
             ->getMock();
 
-        $mockRenderer = $this->createMock(AbstractRenderer::class);
+        $res = $this->getMockBuilder(Response::class)
+            ->setConstructorArgs([$mockApp])
+            ->onlyMethods(['resolvePath'])
+            ->getMock();
+        $res->method('resolvePath')->willReturn('/fake/path/index.php');
 
-        $res->method('createRenderer')->willReturn($mockRenderer);
+        $mockPhpEngine = $this->createMock(PhpEngine::class);
+        $mockPhpEngine->method('render')->willReturn('');
+
+        $mockApp->method('getEngine')->willReturn($mockPhpEngine);
 
         $res->render('index.php', ['name' => 'Sebastian']);
 
@@ -141,7 +150,7 @@ class ResponseTest extends TestCase {
 
     public function testRenderThrowsWhenRendererNull(): void {
         $res = new Response($this->app);
-        $this->expectException(InvalidRendererException::class);
+        $this->expectException(InvalidEngineException::class);
         $this->expectExceptionMessage('engine must not be null');
         $res->render('index.php', ['name' => 'Sebastian']);
     }
@@ -149,10 +158,18 @@ class ResponseTest extends TestCase {
     public function testRenderThrowsWhenInvalidRenderer(): void {
         $this->app->set('view engine', 'txt');
         $res = new Response($this->app);
-        $this->expectException(InvalidRendererException::class);
+        $this->expectException(InvalidEngineException::class);
         $this->expectExceptionMessage('is not supported');
         $res->render('index.php', ['name' => 'Sebastian']);
     }
 
-    
+    /* ---------- Send ---------- */
+
+    public function testHeadersSent(): void {
+
+    }
+
+    public function testRequestEnded(): void {
+
+    }
 }

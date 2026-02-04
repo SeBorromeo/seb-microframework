@@ -1,4 +1,4 @@
-<?php namespace Sebastian\MicroFramework\Exceptions\Http;
+<?php namespace Sebastian\MicroFramework\Exceptions\View;
 
 class InvalidViewException extends \RuntimeException
 {
