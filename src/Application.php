@@ -88,17 +88,20 @@ class Application {
     }
 
     public function getEngine(string $ext): EngineInterface {
-        if (isset($this->engineInstances[$ext])) 
+        if (isset($this->viewEngineInstances[$ext])) 
             return $this->viewEngineInstances[$ext];
 
-        if (!isset($this->engines[$ext])) 
-            throw new InvalidEngineException("No engine registered for extension: $ext");
+        if (!isset($this->viewEngines[$ext])) 
+            throw new InvalidEngineException($ext);
 
         $engine = $this->viewEngines[$ext];
-
-        if (is_callable($engine)) 
+        
+        if (is_callable($engine)) {
             $this->viewEngineInstances[$ext] = $engine();
-
+        } elseif (is_string($engine)) {
+            $this->viewEngineInstances[$ext] = new $engine();
+        }
+        
         return $this->viewEngineInstances[$ext];
     }
 }

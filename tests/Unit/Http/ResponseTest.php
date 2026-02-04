@@ -4,7 +4,6 @@ use PHPUnit\Framework\TestCase;
 use Sebastian\MicroFramework\Http\Response;
 use Sebastian\MicroFramework\Application;
 use Sebastian\MicroFramework\Exceptions\Application\InvalidEngineException;
-use Sebastian\MicroFramework\View\AbstractRenderer;
 use Sebastian\MicroFramework\View\Engine\PhpEngine;
 
 class ResponseTest extends TestCase {
