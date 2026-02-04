@@ -171,10 +171,11 @@ class Response {
         if (!$viewsDir)
             throw new \LogicException("Views directory not configured. Set using \$app->set('views', {path}).");
 
-        $viewPath = str_replace('.', '/', $view);
-
-        if (!str_ends_with($viewPath, ".$ext")) 
+        $viewPath = $view;
+        if (!str_ends_with($view, ".$ext")) {
+            $viewPath = str_replace('.', '/', $view);
             $viewPath .= ".$ext";
+        }
 
         $fullPath = "$viewsDir/$viewPath";
 
