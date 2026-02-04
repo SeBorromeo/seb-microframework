@@ -1,0 +1,1 @@
+<p>Static text</p>
