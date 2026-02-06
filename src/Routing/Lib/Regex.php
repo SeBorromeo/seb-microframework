@@ -6,24 +6,26 @@ class Regex {
 
     private string $pattern;
 
-    public function __construct(string $pattern, array $flags = []) {
-        $pattern = str_replace(self::DEFAULT_DELIMITER, '\\' . self::DEFAULT_DELIMITER, $pattern);
+    public function __construct(string $pattern) {
+        if (@preg_match($pattern, '') === false) 
+            throw new \InvalidArgumentException("Invalid regex pattern: $pattern");
+
+        $this->pattern = $pattern;
+    }
+
+    public static function createWithStringLiteral(string $str, array $flags = []): Regex {
+        $escaped = preg_quote($str, self::DEFAULT_DELIMITER);
 
         foreach ($flags as $f) {
-            if (!in_array($f, self::ALLOWED_FLAGS, true)) {
+            if (!in_array($f, self::ALLOWED_FLAGS, true)) 
                 throw new \InvalidArgumentException("Invalid regex flag: $f");
-            }
         }
 
         $flagStr = implode('', $flags);
 
-        $fullPattern = self::DEFAULT_DELIMITER . $pattern . self::DEFAULT_DELIMITER . $flagStr;
+        $fullPattern = self::DEFAULT_DELIMITER . $escaped . self::DEFAULT_DELIMITER . $flagStr;
 
-        if (@preg_match($fullPattern, '') === false) {
-            throw new \InvalidArgumentException("Invalid regex pattern: $fullPattern");
-        }
-
-        $this->pattern = $fullPattern;
+        return new self($fullPattern);
     }
 
     public function __toString(): string {
