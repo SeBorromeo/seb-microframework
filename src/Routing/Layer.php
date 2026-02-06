@@ -9,16 +9,16 @@ class Layer {
     private array $keys = [];
     private $params;
     private bool $slash;
-    private string $name;
+    public readonly string $name;
     private $matchers;
 
     public string $method;
     public Route $route;
 
     public function __construct(
-        private string $path,
-        private array $options,
-        private $handle
+        public readonly string $path,
+        public readonly array $options,
+        public readonly mixed $handle
     ) {
         $this->options = $options ?? [];
         $this->slash = $this->path === '/' && $this->options['end'] === false;
@@ -62,7 +62,7 @@ class Layer {
                 };
             }
 
-            return $this->pathToRegex($this->options['strict'] ? $this->path : PathUtils::loosen($this->path), [
+            return PathUtils::pathToMatchFunction($this->options['strict'] ? $this->path : PathUtils::loosen($this->path), [
                 'sensitive' => $this->options['sensitive'],
                 'end' => $this->options['end'],
                 'trailing' => !$this->options['strict'],
@@ -71,14 +71,4 @@ class Layer {
         };
         $this->matchers = is_array($this->path) ? array_map($matcher, $this->path) : [$matcher($this->path)];
     }
-
-    private function pathToRegex(string $path, array $options): callable {
-        return ''; // TODO
-    }
-
-    public function path(): string { return $this->path; }
-    public function options(): array { return $this->options; }
-    public function handle(): mixed { return $this->handle; }
-
-    public function name(): string { return $this->name; }
 }
