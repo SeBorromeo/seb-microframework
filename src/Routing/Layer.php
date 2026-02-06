@@ -1,13 +1,19 @@
 <?php namespace Sebastian\MicroFramework\Routing;
 
-const MATCHING_GROUP_REGEXP = '/\((?:\?<(.*?)>)?(?!\?)/g';
+use Sebastian\MicroFramework\Routing\Lib\PathUtils;
+use Sebastian\MicroFramework\Routing\Lib\Regex;
+
+const MATCHING_GROUP_REGEXP = '#\((?:\?<(.*?)>)?(?!\?)#';
 
 class Layer {
     private array $keys = [];
     private $params;
     private bool $slash;
     private string $name;
-    private $matcher;
+    private $matchers;
+
+    public string $method;
+    public Route $route;
 
     public function __construct(
         private string $path,
@@ -15,52 +21,64 @@ class Layer {
         private $handle
     ) {
         $this->options = $options ?? [];
-        $this->name = $handlers['name'] ?? '<anonymous>';
         $this->slash = $this->path === '/' && $this->options['end'] === false;
-
-        if (!is_callable($handle)) 
+        
+        if (!is_callable($handle, false, $handle_name)) 
             throw new \InvalidArgumentException('Route handler must be a callable');
 
-        $matcher = function(string $_path) {
-            $keys = [];
-            $nameIdx = 0;
+        $this->name = $handle_name ?? '<anonymous>';
 
-            while (preg_match(MATCHING_GROUP_REGEXP, $_path, $matches)) {
-                $keys[] = [
-                    'name' => $matches[1] ?? $nameIdx++,
-                    'optional' => false
-                ];
-            }
-            
-            return function($p) use ($keys, $matches, $_path) {
-                $match = preg_match($_path, $p);
-                if (!$match) {
-                    return false;
-                }
+        $matcher = function(Regex|string $_path): callable {
+            if ($_path instanceof Regex) {
+                $keys = [];
+                $nameIdx = 0;
 
-                $params = [];
-                for ($i = 1; $i <= count($matches); $i++) {
-                    $key = $keys[$i - 1];
-                    $prop = $key['name'];
-                    $val = $this->decodeParam($matches[$i]);
+                preg_match_all(MATCHING_GROUP_REGEXP, $_path, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
 
-                    if ($val !== null) {
-                        $params[$prop] = $val;
-                    }
+                foreach ($matches as $m) {
+                    $keys[] = [
+                        'name' => $m[1][0] ?? $nameIdx++,
+                        'offset' => $m[0][1],
+                    ];
                 }
                 
-                return [$params, 'path' => $matches[0]];
-            };
+                // Regex Matcher
+                return function(string $p) use ($keys, $_path): array|false {
+                    if (!preg_match($_path, $p, $match)) 
+                        return false;
+
+                    $params = [];
+                    for ($i = 1; $i < count($match); $i++) {
+                        $key = $keys[$i - 1];
+                        $prop = $key['name'];
+                        $val = PathUtils::decodeParam($match[$i]);
+
+                        if ($val !== null) {
+                            $params[$prop] = $val;
+                        }
+                    }
+                    
+                    return ['params' => $params, 'path' => $match[0]];
+                };
+            }
+
+            return $this->pathToRegex($this->options['strict'] ? $this->path : PathUtils::loosen($this->path), [
+                'sensitive' => $this->options['sensitive'],
+                'end' => $this->options['end'],
+                'trailing' => !$this->options['strict'],
+                'decode' => [PathUtils::class, 'decodeParam'],
+            ]);
         };
-        $this->matcher = is_array($this->path) ? array_map($matcher, $this->path) : [$matcher($this->path)];
+        $this->matchers = is_array($this->path) ? array_map($matcher, $this->path) : [$matcher($this->path)];
+    }
+
+    private function pathToRegex(string $path, array $options): callable {
+        return ''; // TODO
     }
 
     public function path(): string { return $this->path; }
     public function options(): array { return $this->options; }
     public function handle(): mixed { return $this->handle; }
 
-    private function decodeParam(string $val): string|null {
-        // TODO:
-        return null;
-    }
+    public function name(): string { return $this->name; }
 }
