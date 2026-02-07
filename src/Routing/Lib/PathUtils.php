@@ -1,6 +1,19 @@
 <?php namespace Sebastian\MicroFramework\Routing\Lib;
 
-class PathUtils {
+class PathUtils {   
+    /**
+     * Escape text for stringify to path.
+     */
+    public static function escapeText(string $str): array|string|null {
+        return preg_replace('/[{}()\[\]+?!:*\\\\]/', '\\\\$0', $str);
+    }
+
+    /**
+     * Escape a regular expression string.
+     */
+    public static function escape(string $str): array|string|null {
+        return preg_replace('#[\#.+*?^${}()[\]|/\\\\]#', '\\\\$0', $str);
+    }
     public static function decodeParam(string $val): string {
         $decoded = rawurldecode($val);
         if (!mb_check_encoding($decoded, 'UTF-8')) 
