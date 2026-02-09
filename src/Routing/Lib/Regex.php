@@ -13,7 +13,7 @@ class Regex {
         $this->pattern = $pattern;
     }
 
-    public static function createWithStringLiteral(string $str, array $flags = []): Regex {
+    public static function fromString(string $str, array $flags = []): Regex {
         $escaped = preg_quote($str, self::DEFAULT_DELIMITER);
 
         foreach ($flags as $f) {

@@ -6,7 +6,6 @@ use Sebastian\MicroFramework\Exceptions\Http\HeadersAlreadySentException;
 use Sebastian\MicroFramework\Exceptions\View\ViewNotFoundException;
 
 class Response {
-    private Application $app;
     private array $locals = [];
     
     private array $headers = [];
@@ -42,9 +41,9 @@ class Response {
         503 => 'Service Unavailable',
     ];
 
-    public function __construct(Application $app) {
-        $this->app = $app;
-    }
+    public function __construct(
+        private Application $app
+    ) {}
 
     public function app(): Application { return $this->app; }
 

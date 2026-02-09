@@ -1,7 +1,6 @@
 <?php namespace Sebastian\MicroFramework\Exceptions\View;
 
-class ViewNotFoundException extends \RuntimeException
-{
+class ViewNotFoundException extends \RuntimeException {
     public function __construct(
         string $view,
         int $code = 0,

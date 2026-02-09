@@ -3,7 +3,7 @@
 use Sebastian\MicroFramework\Routing\Lib\PathUtils;
 use Sebastian\MicroFramework\Routing\Lib\Regex;
 
-const MATCHING_GROUP_REGEXP = '#\((?:\?<(.*?)>)?(?!\?)#';
+const MATCHING_GROUP_REGEXP = '/\((?:\?<(.*?)>)?(?!\?)/';
 
 class Layer {
     private array $keys = [];
