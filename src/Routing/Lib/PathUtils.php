@@ -1,17 +1,15 @@
 <?php namespace Sebastian\MicroFramework\Routing\Lib;
 
-class PathUtils {   
-    /**
-     * Escape text for stringify to path.
-     */
-    public static function escapeText(string $str): array|string|null {
-        return preg_replace('/[{}()\[\]+?!:*\\\\]/', '\\\\$0', $str);
-    }
 
+
+
+
+
+class PathUtils {
     /**
      * Escape a regular expression string.
      */
-    public static function escape(string $str): array|string|null {
+    private static function escape(string $str): string {
         return preg_replace('#[\#.+*?^${}()[\]|/\\\\]#', '\\\\$0', $str);
     }
     public static function decodeParam(string $val): string {
@@ -28,5 +26,14 @@ class PathUtils {
         }
 
         return is_array($path) ? array_map([self::class, 'loosen'], $path) : rtrim($path, '/');
+    }
+
+    /* ---------- Stringify ---------- */
+
+    /**
+     * Escape text for stringify to path.
+     */
+    private static function escapeText(string $str): string {
+        return preg_replace('/[{}()\[\]+?!:*\\\\]/', '\\\\$0', $str);
     }
 }
