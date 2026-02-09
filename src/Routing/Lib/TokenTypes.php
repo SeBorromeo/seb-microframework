@@ -1,21 +1,5 @@
 <?php namespace Sebastian\MicroFramework\Routing\Lib;
 
-const SIMPLE_TOKENS = [
-    "{" => "{",
-    "}" => "}",
-];
-
-enum TokenType: string {
-    case LBrace = '{';
-    case RBrace = '}';
-    case Wildcard = 'wildcard';
-    case Param = 'param';
-    case Char = 'char';
-    case Escape = 'escape';
-    case End = 'end';
-}
-
-
 class LexToken {
     public function __construct(
         public readonly TokenType $type,
