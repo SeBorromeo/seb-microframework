@@ -20,12 +20,6 @@ class PathUtilsTest extends TestCase {
         $this->assertEquals('/search/query\\\\\\?', $method->invoke(null, '/search/query\\?'));
     }
 
-    public function testEscape(): void {
-        $method = new ReflectionMethod(PathUtils::class, 'escape');
-
-        $this->assertEquals('\#\[\\\\\#\.\+\*\?\^\$\{\}\(\)\[\\\\\\]\|\/\\\\\\\\\]\#', $method->invoke(null, '#[\#.+*?^${}()[\]|/\\\\]#'));
-    }
-
     /* ---------- Parse ---------- */
 
     public function testParseText(): void {

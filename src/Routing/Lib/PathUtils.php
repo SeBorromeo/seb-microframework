@@ -76,13 +76,6 @@ class Group extends Token {
 }
 
 class PathUtils {  
-    /**
-     * Escape a regular expression string.
-     */
-    private static function escape(string $str): string {
-        return preg_replace('#[\#.+*?^${}()[\]|/\\\\]#', '\\\\$0', $str);
-    }
-
     /* ---------- Parse ---------- */
 
     /**
@@ -339,9 +332,9 @@ class PathUtils {
 
         $pattern = "^(?:" . implode('|', $sources) . ")";
         if ($trailing) {
-            $pattern .= "(?:" . self::escape($delimiter) . "$)?";
+            $pattern .= "(?:" . preg_quote($delimiter) . "$)?";
         }
-        $pattern .= $end ? '$' : '(?=' . self::escape($delimiter) . '|$)';
+        $pattern .= $end ? '$' : '(?=' . preg_quote($delimiter) . '|$)';
         
         $regex = Regex::fromString($pattern, $flags);
         return [$regex, $keys];
@@ -433,7 +426,7 @@ class PathUtils {
 
         foreach ($tokens as $token) {
             if ($token instanceof Text) {
-                $result .= self::escape($token->value);
+                $result .= preg_quote($token->value);
                 $backtrack .= $token->value;
                 $isSafeSegmentParam = $isSafeSegmentParam || str_contains($token->value, $delimiter);
                 continue;
@@ -471,8 +464,8 @@ class PathUtils {
      * @return string
      */
     private static function negate(string $delimiter, string $backtrack): string {
-        $del = self::escape($delimiter);
-        $bt  = self::escape($backtrack);
+        $del = preg_quote($delimiter);
+        $bt  = preg_quote($backtrack);
 
         if (strlen($backtrack) < 2) {
             if (strlen($delimiter) < 2)
