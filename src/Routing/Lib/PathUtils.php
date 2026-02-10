@@ -245,9 +245,31 @@ class PathUtils {
     /* ---------- Stringify ---------- */
 
     /**
+     * Stringify token data into a path string.
+     */
+    public static function stringify(TokenData $data): string {
+        return self::stringifyTokens($data->tokens);
+    }
+
+    /**
+     * Stringify an array of tokens into a path string.
+     */
+    private static function stringifyTokens(array $tokens): string {
+        return ''; //TODO
+    } 
+
+    /**
      * Escape text for stringify to path.
      */
     private static function escapeText(string $str): string {
         return preg_replace('/[{}()\[\]+?!:*\\\\]/', '\\\\$0', $str);
+    }
+
+    private static function isNameSafe(string $name): bool {
+        return false; //TODO
+    }
+
+    private static function isNextNameSafe(?Token $token = null): bool {
+        return false; //TODO
     }
 }
