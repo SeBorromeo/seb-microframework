@@ -75,4 +75,37 @@ class PathUtilsTest extends TestCase {
         $this->assertInstanceOf(Parameter::class, $group2->tokens[1]);
         $this->assertSame('month', $group2->tokens[1]->name);
     }
+
+    /* ---------- Match ---------- */
+
+    public function testMatchParam(): void {
+        $result = PathUtils::match('/users/:id');
+
+        var_dump($result);
+        var_dump($result('/users/123'));
+
+        $this->assertNotFalse($result('/users/123'));
+        $this->assertEquals(['/users/123', ['id' => ['123']]], $result('/users/123'));
+        $this->assertFalse($result('/users/'));
+        $this->assertFalse($result('/users/123/profile'));
+    }
+
+    public function testMatchWildcard(): void {
+        $result = PathUtils::match('/files/*filepath');
+
+        $this->assertNotFalse($result('/files/images/photo.jpg'));
+        $this->assertEquals(['/files/images/photo.jpg', ['filepath' => ['images', 'photo.jpg']]], $result('/files/images/photo.jpg'));
+        $this->assertEquals(['/files/docs/report.pdf', ['filepath' => ['docs', 'report.pdf']]], $result('/files/docs/report.pdf'));
+        $this->assertFalse($result('/files/'));
+        $this->assertFalse($result('/files'));
+    }
+
+    public function testMatchOptionalGroup(): void {
+        $result = PathUtils::match('/posts{/:year{/:month}}');
+
+        $this->assertEquals(['/posts', []], $result('/posts'));
+        $this->assertEquals(['/posts/2023', ['year' => ['2023']]], $result('/posts/2023'));
+        $this->assertEquals(['/posts/2023/06', ['year' => ['2023'], 'month' => ['06']]], $result('/posts/2023/06'));
+        $this->assertFalse($result('/posts/2023/06/extra'));
+    }
 }   

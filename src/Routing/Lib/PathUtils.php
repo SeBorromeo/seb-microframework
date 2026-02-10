@@ -33,7 +33,10 @@ abstract class Token {
     ) {}
 }
 
-class Text extends Token {
+abstract class FlatToken extends Token {}
+abstract class Key extends FlatToken {}
+
+class Text extends FlatToken {
     public function __construct(
         public readonly string $value
     ) {
@@ -41,7 +44,7 @@ class Text extends Token {
     }
 }
 
-class Parameter extends Token {
+class Parameter extends Key {
     public function __construct(
         public readonly string $name
     ) {
@@ -49,7 +52,7 @@ class Parameter extends Token {
     }
 }
 
-class Wildcard extends Token {
+class Wildcard extends Key {
     public function __construct(
         public readonly string $name
     ) {
@@ -171,10 +174,10 @@ class PathUtils {
      * Parse a parameter name from the path string as a char array, starting at the given index.
      * 
      * @param string[] $chars
-     *  - The path string as an array of characters
+     *  - The path string as an array of characters.
      * 
      * @param int $index
-     *  - The current index in the char array (passed by reference, will be updated to the position after the parsed name)
+     *  - The current index in the char array (passed by reference, will be updated to the position after the parsed name).
      * 
      * @return string
      */
@@ -201,11 +204,11 @@ class PathUtils {
             }
 
             if ($quoteStart) 
-                throw new PathException("Unterminated quote at index $quoteStart");
+                throw new PathException("Unterminated quote at index $quoteStart", implode('', $chars));
         } 
 
         if (!$value) 
-            throw new PathException("Missing parameter name at index $index");
+            throw new PathException("Missing parameter name at index $index", implode('', $chars));
 
         return $value;
     }
@@ -224,6 +227,8 @@ class PathUtils {
         return function() {}; // TODO
 
     }
+
+    /* ---------- Layer Util ---------- */
 
     /**
      * Decode a URL parameter, ensuring it's valid UTF-8. Throws an exception if decoding fails.
@@ -246,8 +251,224 @@ class PathUtils {
 
         return is_array($path) ? array_map([self::class, 'loosen'], $path) : rtrim($path, '/');
     }
+
+    /* ---------- Match ---------- */
+
     /**
-     * Block backtracking on previous text and ignore delimiter string.
+     * Transform a path into a match function
+     * 
+     * @param string|array $path
+     *  - A path string or an array of path strings to match against.
+     * 
+     * @param array $options {
+     *   decode?: callable(string): string,
+     *   delimiter?: string
+     * }
+     * 
+     * @return callable(string): array|false
+     */
+    public static function match(string|array $path, array $options = []): callable {
+        $decode    = $options['decode']    ?? [PathUtils::class, 'decodeParam'];
+        $delimiter = $options['delimiter'] ?? DEFAULT_DELIMITER;
+
+        [$regex, $keys] = self::pathToRegex($path, $options);
+    
+        $decoders = array_map(function($key) use ($decode, $delimiter) { 
+            if (!$decode)
+                return noop(...);
+
+            if ($key->type === 'param')
+                return $decode;
+            
+            return fn(string $value) => array_map($decode, explode($delimiter, $value));
+        }, $keys);
+
+        return function(string $p) use ($regex, $keys, $decoders): array|false {
+            preg_match($regex, $p, $matches);
+            if (!$matches) 
+                return false;
+            
+            $path = $matches[0];
+            $params = [];
+
+            for ($i = 1; $i < count($matches); $i++) {
+                if (is_null($matches[$i])) 
+                    continue;
+
+                $key = $keys[$i - 1];
+                $decoder = $decoders[$i - 1];
+                $params[$key->name] = $decoder($matches[$i]);
+            }
+
+            return [$path, $params];
+        };
+    }
+
+    /**
+     * Convert a path string with parameters into a regex pattern and extract parameter keys.
+     * 
+     * @param string|array $path
+     *  - A path string or an array of path strings to convert into regex patterns.
+     * 
+     * @param array $options {
+     *   delimiter?: string,
+     *   end?: bool,
+     *   sensitive?: bool,
+     *   trailing?: bool
+     * }
+     * 
+     * @return array
+      *  - An array containing the compiled regex pattern and an array of parameter keys.
+     */
+    public static function pathToRegex(string|array $path, array $options = []): array {
+        $delimiter = $options['delimiter'] ?? DEFAULT_DELIMITER;
+        $end       = $options['end']       ?? true;
+        $sensitive = $options['sensitive'] ?? false;
+        $trailing  = $options['trailing']  ?? true;
+
+        $keys = [];
+        $flags = $sensitive ? '' : 'i';
+        $sources = [];
+
+        foreach (self::pathsToArray($path, []) as $input) {
+            $data = $input instanceof TokenData ? $input : self::parse($input, $options);
+            foreach (self::flatten($data->tokens) as $tokens) {
+                $sources[] = self::toRegexSource($tokens, $delimiter, $keys, $data->originalPath);
+            }
+        }
+
+        $pattern = "^(?:" . implode('|', $sources) . ")";
+        if ($trailing) {
+            $pattern .= "(?:" . self::escape($delimiter) . "$)?";
+        }
+        $pattern .= $end ? '$' : '(?=' . self::escape($delimiter) . '|$)';
+        
+        $regex = Regex::fromString($pattern, $flags);
+        return [$regex, $keys];
+    }
+
+    /** 
+     * Convert a path or array of paths into a flat array of paths.
+     * 
+     * @param string|array $paths
+     *  - A single path string or an array of path strings
+     * 
+     * @param array $init
+     *  - An initial array to accumulate paths into (used for recursion)
+     * 
+     * @return array
+     */
+    private static function pathsToArray(string|array $paths, array $init): array {
+        if (is_array($paths)) {
+            foreach ($paths as $p) {
+                self::pathsToArray($p, $init);
+            }
+        } else {
+            $init[] = $paths;
+        }
+        return $init;
+    }
+
+    /**
+     * Flatten a nested array of tokens into an array of token sequences, where each sequence represents a possible path through the token tree. Used to generate regex patterns for all combinations of optional groups.
+     * 
+     * For example, the path "/posts{/:year{/:month}}" would produce the following token sequences:
+     *  - /posts
+     *  - /posts/:year
+     *  - /posts/:year/:month
+     * 
+     * @param Token[] $tokens
+     * 
+     * @param int $index
+     * - The current index in the tokens array (used for recursion).
+     * 
+     * @param array $init
+      *  - An initial array of tokens accumulated so far (used for recursion).
+     * 
+     * @return iterable
+      *  - An iterable of token sequences, where each sequence is an array of tokens representing a possible path through the token tree.
+     */
+    private static function flatten(array $tokens, int $index = 0, array $init = []): iterable {
+        if ($index === count($tokens)) {
+            return yield $init;
+        }
+
+        $token = $tokens[$index];
+
+        if ($token instanceof Group) {
+            foreach (self::flatten($token->tokens, 0, $init) as $seq) {
+                foreach (self::flatten($tokens, $index + 1, $seq) as $finalSeq) {
+                    yield $finalSeq;    
+                }
+            }
+        } else {
+            $init[] = $token;
+            foreach (self::flatten($tokens, $index + 1, $init) as $next) {
+                yield $next;
+            }
+        }
+    }
+
+    /**
+     * Transform a flat sequence of tokens into a regular expression.
+     * 
+     * @param FlatToken[] $tokens
+     * 
+     * @param string $delimiter
+     * 
+     * @param Key[] $keys
+     *  - An array to accumulate parameter keys into (passed by reference).
+     * 
+     * @param string|null $originalPath
+     * 
+     * @return string
+     * 
+     * @throws PathException 
+     *  - If a parameter token is not preceded by any text, which would make it impossible to determine where a previous parameter/wildcard value ends in the path string.
+     */
+    private static function toRegexSource(array $tokens, string $delimiter, array &$keys, ?string $originalPath): string {
+        $result = '';
+        $backtrack = '';
+        $isSafeSegmentParam = true;
+
+        foreach ($tokens as $token) {
+            if ($token instanceof Text) {
+                $result .= self::escape($token->value);
+                $backtrack .= $token->value;
+                $isSafeSegmentParam = $isSafeSegmentParam || str_contains($token->value, $delimiter);
+                continue;
+            } 
+
+            if ($token instanceof Parameter || $token instanceof Wildcard) {
+                if (!$isSafeSegmentParam && !$backtrack) 
+                    throw new PathException("Missing text before $token->name $token->type", $originalPath);
+
+                if ($token instanceof Parameter) {
+                    $result .= '(' . self::negate($delimiter, $isSafeSegmentParam ? '' : $backtrack) . '+)';
+                } else {
+                    $result .= '([\\s\\S]+)';
+                }
+
+                $keys[] = $token;
+                $backtrack = '';
+                $isSafeSegmentParam = true;
+                continue;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Create regex section that blocks backtracking on previous text and ignores delimiter string.
+     * 
+     * @param string $delimiter
+     *  - The delimiter string to ignore (e.g. '/').
+     * 
+     * @param string $backtrack
+     *  - The previous text to block backtracking on.
+     * 
+     * @return string
      */
     private static function negate(string $delimiter, string $backtrack): string {
         $del = self::escape($delimiter);
