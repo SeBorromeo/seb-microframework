@@ -224,6 +224,23 @@ class PathUtils {
 
         return is_array($path) ? array_map([self::class, 'loosen'], $path) : rtrim($path, '/');
     }
+    /**
+     * Block backtracking on previous text and ignore delimiter string.
+     */
+    private static function negate(string $delimiter, string $backtrack): string {
+        $del = self::escape($delimiter);
+        $bt  = self::escape($backtrack);
+
+        if (strlen($backtrack) < 2) {
+            if (strlen($delimiter) < 2)
+                return "[^$del$bt]";
+
+            return "(?:(?!$del)[^$bt])";
+        } else if (strlen($delimiter) < 2) {
+            return "(?:(?!$bt)[^$del])";
+        }
+        return "(?:(?!$del|$bt)[\\s\\S])";
+    }
 
     /* ---------- Stringify ---------- */
 
