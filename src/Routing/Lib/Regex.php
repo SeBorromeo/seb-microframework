@@ -13,17 +13,14 @@ class Regex {
         $this->pattern = $pattern;
     }
 
-    public static function fromString(string $str, array $flags = []): Regex {
-        $escaped = preg_quote($str, self::DEFAULT_DELIMITER);
+    public static function fromString(string $str, array|string $flags = []): Regex {
+        $flags = is_string($flags) ? str_split($flags) : $flags;
 
-        foreach ($flags as $f) {
-            if (!in_array($f, self::ALLOWED_FLAGS, true)) 
-                throw new \InvalidArgumentException("Invalid regex flag: $f");
-        }
+        $invalid = array_diff($flags, self::ALLOWED_FLAGS);
+        if ($invalid) 
+            throw new \InvalidArgumentException('Invalid regex flag(s): ' . implode(', ', $invalid));
 
-        $flagStr = implode('', $flags);
-
-        $fullPattern = self::DEFAULT_DELIMITER . $escaped . self::DEFAULT_DELIMITER . $flagStr;
+        $fullPattern = self::DEFAULT_DELIMITER . $str . self::DEFAULT_DELIMITER . implode('', $flags);
 
         return new self($fullPattern);
     }
