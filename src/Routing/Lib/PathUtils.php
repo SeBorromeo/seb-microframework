@@ -209,14 +209,36 @@ class PathUtils {
 
         return $value;
     }
+
+    /* ---------- Compile ---------- */
+
+    public function compile(Path $path, array $options = []): callable {
+        return function() {};
+    }
+
+    private function tokensToFunction(array $tokens, string $delimiter, callable|false $encode): callable {
+        return function() {}; // TODO
+    }
+
+    private function tokenToFunction(Token $token, string $delimiter, callable|false $encode): callable {
+        return function() {}; // TODO
+
+    }
+
+    /**
+     * Decode a URL parameter, ensuring it's valid UTF-8. Throws an exception if decoding fails.
+     */
     public static function decodeParam(string $val): string {
         $decoded = rawurldecode($val);
         if (!mb_check_encoding($decoded, 'UTF-8')) 
-           throw new \InvalidArgumentException("Failed to decode param '$val'", 400);
+           throw new \InvalidArgumentException("Failed to decode param '$val'");
 
         return $decoded;
     }
 
+    /**
+     * Remove trailing slashes from a path, unless it's the root path. Used when strict routing is disabled.
+     */
     public static function loosen(array|string $path): string {
         if ($path === '/') {
             return $path;
