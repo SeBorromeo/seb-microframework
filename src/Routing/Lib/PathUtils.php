@@ -35,7 +35,7 @@ abstract class Token {
 
 class Text extends Token {
     public function __construct(
-        public readonly string $text
+        public readonly string $value
     ) {
         parent::__construct(TokenNodeType::Text);
     }
