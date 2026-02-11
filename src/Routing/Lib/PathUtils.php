@@ -184,9 +184,18 @@ class PathUtils {
      *  - A path string or an array of path strings to match against.
      * 
      * @param array{
-     *     decode?: callable(string): string,
-     *     delimiter?: string
+     *   decode?: callable(string): string,
+     *   delimiter?: string,
+     *   end?: bool,
+     *   sensitive?: bool,
+     *   trailing?: bool
      * } $options
+     *  - Optional settings for the matching behavior:
+     *    - decode: A function to decode parameter values (default: decodeURIComponent).
+     *    - delimiter: The delimiter to use for matching path segments (default: DEFAULT_DELIMITER).
+     *    - end: Whether to match the end of the path (default: true).
+     *    - sensitive: Whether to generate a case-sensitive regex (default: false).
+     *    - trailing: Whether to allow trailing delimiters (default: true).
      * 
      * @return callable(string): array|false
      */
