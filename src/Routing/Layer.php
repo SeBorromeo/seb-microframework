@@ -20,12 +20,13 @@ class Layer {
         public readonly mixed $handle = null,
     ) {
         $this->slash = $path === '/' && $this->options['end'] === false;
-        
-        is_callable($handle, false, $handle_name);
-        // if (!is_callable($handle, false, $handle_name)) 
-            // throw new \InvalidArgumentException('Route handler must be a callable');
 
-        $this->name = $handle_name ?? '<anonymous>';
+        if ($handle && !is_callable($handle, false, $handle_name)) 
+            throw new \InvalidArgumentException('Route handler must be a callable');
+        
+        $this->name = $handle instanceof \Closure
+            ? '<anonymous>'
+            : ($handle_name ?: '<anonymous>');
 
         $matcher = function(Regex|string $_path): callable {
             if ($_path instanceof Regex) {
@@ -66,7 +67,7 @@ class Layer {
                 'sensitive' => $this->options['sensitive'],
                 'end' => $this->options['end'],
                 'trailing' => !$this->options['strict'],
-                // 'decode' => [self::class, 'decodeParam'],
+                'decode' => [self::class, 'decodeParam'],
             ]);
         };
         $this->matchers = is_array($path) ? array_map($matcher, $path) : [$matcher($path)];

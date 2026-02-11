@@ -43,7 +43,7 @@ class LayerTest extends TestCase {
 
         $this->assertTrue($layer->match('/users/123'));
         $this->assertSame('/users/123', $layer->path);
-        $this->assertSame(['id' => '123'], $layer->params);
+        $this->assertSame(['id' => ['123']], $layer->params);
     }
 
     public function testMatchWithWildcard(): void {
