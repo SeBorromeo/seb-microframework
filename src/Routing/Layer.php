@@ -10,7 +10,8 @@ class Layer {
     public ?array $params = [];
     public ?string $path = null;
     public readonly string $name;
-    
+    public mixed $method;
+
     private bool $slash;
     private $matchers;
 
