@@ -10,6 +10,14 @@ const ID_CONTINUE = '/^[$\x{200C}\x{200D}\p{ID_Continue}]$/u';
 const SIMPLE_TOKENS = [
     "{" => TokenType::LBrace,
     "}" => TokenType::RBrace,
+    // Reserved for use
+    "(" => TokenType::LParen,
+    ")" => TokenType::RParen,
+    "[" => TokenType::LBracket,
+    "]" => TokenType::RBracket,
+    "+" => TokenType::Plus,
+    "?" => TokenType::Optional,
+    "!" => TokenType::Exclamation,
 ];
 
 class LexToken {

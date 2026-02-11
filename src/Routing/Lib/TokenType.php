@@ -8,4 +8,12 @@ enum TokenType: string {
     case Char = 'char';
     case Escape = 'escape';
     case End = 'end';
+    // Reserved for use
+    case LParen = '(';
+    case RParen = ')';
+    case LBracket = '[';
+    case RBracket = ']';
+    case Plus = '+';    
+    case Optional = '?';
+    case Exclamation = '!';
 }
