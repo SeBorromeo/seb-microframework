@@ -191,7 +191,7 @@ class PathUtils {
      * @return callable(string): array|false
      */
     public static function match(string|array $path, array $options = []): callable {
-        $decode    = $options['decode']    ?? [PathUtils::class, 'decodeParam'];
+        $decode    = $options['decode']    ?? [PathUtils::class, 'decodeURIComponent'];
         $delimiter = $options['delimiter'] ?? DEFAULT_DELIMITER;
 
         [$regex, $keys] = self::pathToRegex($path, $options);
@@ -223,7 +223,7 @@ class PathUtils {
                 $params[$key->name] = $decoder($matches[$i]);
             }
 
-            return [$path, $params];
+            return ['path' => $path, 'params' => $params];
         };
     }
 
@@ -436,5 +436,18 @@ class PathUtils {
 
     private static function isNextNameSafe(?Token $token = null): bool {
         return false; //TODO
+    }
+
+    /* ---------- Helper ---------- */
+    
+    /**
+     * Decode a URI component, throwing an exception if the result is not valid UTF-8.
+     */
+    public static function decodeURIComponent(string $val): string {
+        $decoded = rawurldecode($val);
+        if (!mb_check_encoding($decoded, 'UTF-8')) 
+           throw new \InvalidArgumentException("Failed to decode param '$val'");
+
+        return $decoded;
     }
 }

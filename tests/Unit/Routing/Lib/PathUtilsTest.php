@@ -2,10 +2,10 @@
 
 use PHPUnit\Framework\TestCase;
 use Sebastian\MicroFramework\Routing\Lib\PathUtils;
-use Sebastian\MicroFramework\Routing\Lib\Group;
-use Sebastian\MicroFramework\Routing\Lib\Parameter;
-use Sebastian\MicroFramework\Routing\Lib\Text;
-use Sebastian\MicroFramework\Routing\Lib\Wildcard;
+use Sebastian\MicroFramework\Routing\Lib\AST\Text;
+use Sebastian\MicroFramework\Routing\Lib\AST\Group;
+use Sebastian\MicroFramework\Routing\Lib\AST\Parameter;
+use Sebastian\MicroFramework\Routing\Lib\AST\Wildcard;
 
 class PathUtilsTest extends TestCase {
     public function testEscapeText(): void {
@@ -26,8 +26,11 @@ class PathUtilsTest extends TestCase {
         $result = PathUtils::parse('/users/list');
 
         $this->assertCount(1, $result->tokens);
-        $this->assertInstanceOf(Text::class, $result->tokens[0]);
-        $this->assertSame('/users/list', $result->tokens[0]->value);
+
+        /** @var Text */
+        $text = $result->tokens[0];
+        $this->assertInstanceOf(Text::class, $text);
+        $this->assertSame('/users/list', $text->value);
     }
 
     public function testParseParameter(): void {
@@ -92,7 +95,7 @@ class PathUtilsTest extends TestCase {
         $result = PathUtils::match('/users/:id');
 
         $this->assertNotFalse($result('/users/123'));
-        $this->assertEquals(['/users/123', ['id' => ['123']]], $result('/users/123'));
+        $this->assertEquals(['path' => '/users/123', 'params' => ['id' => ['123']]], $result('/users/123'));
         $this->assertFalse($result('/users/'));
         $this->assertFalse($result('/users/123/profile'));
     }
@@ -101,8 +104,8 @@ class PathUtilsTest extends TestCase {
         $result = PathUtils::match('/files/*filepath');
 
         $this->assertNotFalse($result('/files/images/photo.jpg'));
-        $this->assertEquals(['/files/images/photo.jpg', ['filepath' => ['images', 'photo.jpg']]], $result('/files/images/photo.jpg'));
-        $this->assertEquals(['/files/docs/report.pdf', ['filepath' => ['docs', 'report.pdf']]], $result('/files/docs/report.pdf'));
+        $this->assertEquals(['path' => '/files/images/photo.jpg', 'params' => ['filepath' => ['images', 'photo.jpg']]], $result('/files/images/photo.jpg'));
+        $this->assertEquals(['path' => '/files/docs/report.pdf', 'params' => ['filepath' => ['docs', 'report.pdf']]], $result('/files/docs/report.pdf'));
         $this->assertFalse($result('/files/'));
         $this->assertFalse($result('/files'));
     }
@@ -110,9 +113,9 @@ class PathUtilsTest extends TestCase {
     public function testMatchOptionalGroup(): void {
         $result = PathUtils::match('/posts{/:year{/:month}}');
 
-        $this->assertEquals(['/posts', []], $result('/posts'));
-        $this->assertEquals(['/posts/2023', ['year' => ['2023']]], $result('/posts/2023'));
-        $this->assertEquals(['/posts/2023/06', ['year' => ['2023'], 'month' => ['06']]], $result('/posts/2023/06'));
+        $this->assertEquals(['path' => '/posts', 'params' => []], $result('/posts'));
+        $this->assertEquals(['path' => '/posts/2023', 'params' => ['year' => ['2023']]], $result('/posts/2023'));
+        $this->assertEquals(['path' => '/posts/2023/06', 'params' => ['year' => ['2023'], 'month' => ['06']]], $result('/posts/2023/06'));
         $this->assertFalse($result('/posts/2023/06/extra'));
     }
 }   
