@@ -15,7 +15,7 @@ class Layer {
     private $matchers;
 
     public function __construct(
-        Regex|string $path,
+        Regex|array|string $path,
         public readonly array $options = [],
         public readonly mixed $handle = null,
     ) {

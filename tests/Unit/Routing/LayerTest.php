@@ -39,11 +39,11 @@ class LayerTest extends TestCase {
     }
 
     public function testMatchWithParameter(): void {
-        $layer = new Layer('/users/:id');
+        $layer = new Layer('/posts/:year/:month');
 
-        $this->assertTrue($layer->match('/users/123'));
-        $this->assertSame('/users/123', $layer->path);
-        $this->assertSame(['id' => ['123']], $layer->params);
+        $this->assertTrue($layer->match('/posts/2023/06'));
+        $this->assertSame('/posts/2023/06', $layer->path);
+        $this->assertSame(['year' => ['2023'], 'month' => ['06']], $layer->params);
     }
 
     public function testMatchWithWildcard(): void {
@@ -57,6 +57,8 @@ class LayerTest extends TestCase {
     public function testMatchWithRegex(): void {
         $layer = new Layer(new Regex('/^\/users\/(\d+)$/'));
 
+        $this->assertFalse($layer->match('/users/'));
+        $this->assertFalse($layer->match('/users/123/profile'));
         $this->assertTrue($layer->match('/users/123'));
         $this->assertSame('/users/123', $layer->path);
         $this->assertSame(['0' => '123'], $layer->params);
@@ -68,5 +70,32 @@ class LayerTest extends TestCase {
         $this->assertTrue($layer->match('/users/123'));
         $this->assertSame('/users/123', $layer->path);
         $this->assertSame(['id' => '123'], $layer->params);
+    }
+
+    public function testMatchWithArrayOfPaths(): void {
+        $layer = new Layer(['/users/list', '/users/:id']);
+
+        $this->assertTrue($layer->match('/users/list'));
+        $this->assertSame('/users/list', $layer->path);
+        $this->assertSame([], $layer->params);
+
+        $this->assertTrue($layer->match('/users/123'));
+        $this->assertSame('/users/123', $layer->path);
+        $this->assertSame(['id' => ['123']], $layer->params);
+    }
+
+    public function testIncorrectMatch(): void {
+        $layer = new Layer('/users/:id');
+
+        $this->assertFalse($layer->match('/users/'));
+        $this->assertFalse($layer->match('/users/123/profile'));
+    }
+
+    public function testMatchSlash(): void {
+        $layer = new Layer('/', ['end' => false]);
+
+        $this->assertTrue($layer->match('/'));
+        $this->assertSame('', $layer->path);
+        $this->assertSame([], $layer->params);
     }
 }
