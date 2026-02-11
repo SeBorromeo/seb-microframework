@@ -382,24 +382,23 @@ class PathUtils {
       *  - An iterable of token sequences, where each sequence is an array of tokens representing a possible path through the token tree.
      */
     private static function flatten(array $tokens, int $index = 0, array $init = []): iterable {
-        if ($index === count($tokens)) {
+        if ($index === count($tokens)) 
             return yield $init;
-        }
 
         $token = $tokens[$index];
 
         if ($token instanceof Group) {
+            yield from self::flatten($tokens, $index + 1, $init);
+
             foreach (self::flatten($token->tokens, 0, $init) as $seq) {
-                foreach (self::flatten($tokens, $index + 1, $seq) as $finalSeq) {
-                    yield $finalSeq;    
-                }
+                yield from self::flatten($tokens, $index + 1, $seq);
             }
-        } else {
-            $init[] = $token;
-            foreach (self::flatten($tokens, $index + 1, $init) as $next) {
-                yield $next;
-            }
+
+            return;
         }
+
+        $init[] = $token;
+        yield from self::flatten($tokens, $index + 1, $init);
     }
 
     /**
@@ -444,7 +443,7 @@ class PathUtils {
 
                 $keys[] = $token;
                 $backtrack = '';
-                $isSafeSegmentParam = true;
+                $isSafeSegmentParam = false;
                 continue;
             }
         }
