@@ -1,5 +1,7 @@
 <?php namespace Sebastian\MicroFramework\Http;
 
+use Sebastian\MicroFramework\Routing\Route;
+
 class Request {
     private array $params = [];
     private array $query;   
@@ -20,7 +22,7 @@ class Request {
     private string $ip;
     private Response $res;
     private string $protocol;
-    private string $route;
+    public Route $route;
     private bool $secure;
 
     
