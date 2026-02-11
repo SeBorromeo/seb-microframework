@@ -51,7 +51,7 @@ class Layer {
                     for ($i = 1; $i < count($match); $i++) {
                         $key = $keys[$i - 1];
                         $prop = $key['name'];
-                        $val = PathUtils::decodeParam($match[$i]);
+                        $val = self::decodeParam($match[$i]);
 
                         if ($val !== null) {
                             $params[$prop] = $val;
@@ -62,7 +62,8 @@ class Layer {
                 };
             }
 
-            return PathUtils::pathToMatchFunction($this->options['strict'] ? $this->path : PathUtils::loosen($this->path), [
+            // Matcher using path-to-regex
+            return PathUtils::match($this->options['strict'] ? $this->path : self::loosen($this->path), [
                 'sensitive' => $this->options['sensitive'],
                 'end' => $this->options['end'],
                 'trailing' => !$this->options['strict'],
@@ -70,5 +71,29 @@ class Layer {
             ]);
         };
         $this->matchers = is_array($this->path) ? array_map($matcher, $this->path) : [$matcher($this->path)];
+    }
+
+    /* ---------- Layer Util ---------- */
+
+    /**
+     * Decode a URL parameter, ensuring it's valid UTF-8. Throws an exception if decoding fails.
+     */
+    public static function decodeParam(string $val): string {
+        $decoded = rawurldecode($val);
+        if (!mb_check_encoding($decoded, 'UTF-8')) 
+           throw new \InvalidArgumentException("Failed to decode param '$val'");
+
+        return $decoded;
+    }
+
+    /**
+     * Remove trailing slashes from a path, unless it's the root path. Used when strict routing is disabled.
+     */
+    public static function loosen(array|string $path): string {
+        if ($path === '/') {
+            return $path;
+        }
+
+        return is_array($path) ? array_map([self::class, 'loosen'], $path) : rtrim($path, '/');
     }
 }
