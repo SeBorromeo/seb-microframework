@@ -6,6 +6,7 @@ use Sebastian\MicroFramework\Routing\Lib\AST\Text;
 use Sebastian\MicroFramework\Routing\Lib\AST\Group;
 use Sebastian\MicroFramework\Routing\Lib\AST\Parameter;
 use Sebastian\MicroFramework\Routing\Lib\AST\Wildcard;
+use Sebastian\MicroFramework\Routing\Lib\Regex;
 
 class PathUtilsTest extends TestCase {
     public function testEscapeText(): void {
@@ -118,4 +119,19 @@ class PathUtilsTest extends TestCase {
         $this->assertEquals(['path' => '/posts/2023/06', 'params' => ['year' => ['2023'], 'month' => ['06']]], $result('/posts/2023/06'));
         $this->assertFalse($result('/posts/2023/06/extra'));
     }
+
+    /* ---------- ToRegexSource ---------- */
+
+    public function testPathToRegex(): void {
+        ['regex' => $regex, 'keys' => $keys] = PathUtils::pathToRegex('/users/:id');
+
+        $this->assertInstanceOf(Regex::class, $regex);
+        $this->assertSame('#^(?:/users/([^/]+))(?:/$)?$#i', (string) $regex);
+
+        /** @var Parameter */
+        $param = $keys[0];
+        $this->assertInstanceOf(Parameter::class, $param);
+        $this->assertEquals('id', $param->name);
+    }
+
 }   
