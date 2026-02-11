@@ -92,6 +92,15 @@ class PathUtilsTest extends TestCase {
 
     /* ---------- Match ---------- */
 
+    public function testMatchText(): void {
+        $result = PathUtils::match('/users/list');
+
+        $this->assertNotFalse($result('/users/list'));
+        $this->assertEquals(['path' => '/users/list', 'params' => []], $result('/users/list'));
+        $this->assertFalse($result('/users/'));
+        $this->assertFalse($result('/users/list/extra'));
+    }
+
     public function testMatchParam(): void {
         $result = PathUtils::match('/users/:id');
 
