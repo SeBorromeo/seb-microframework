@@ -6,25 +6,24 @@ use Sebastian\MicroFramework\Routing\Lib\Regex;
 const MATCHING_GROUP_REGEXP = '/\((?:\?<(.*?)>)?(?!\?)/';
 
 class Layer {
-    private array $keys = [];
-    private $params;
-    private bool $slash;
+    public array $keys = [];
+    public ?array $params = [];
+    public ?string $path = null;
     public readonly string $name;
+    
+    private bool $slash;
     private $matchers;
 
-    public string $method;
-    public Route $route;
-
     public function __construct(
-        public readonly string $path,
-        public readonly array $options,
-        public readonly mixed $handle
+        Regex|string $path,
+        public readonly array $options = [],
+        public readonly mixed $handle = null,
     ) {
-        $this->options = $options ?? [];
-        $this->slash = $this->path === '/' && $this->options['end'] === false;
+        $this->slash = $path === '/' && $this->options['end'] === false;
         
-        if (!is_callable($handle, false, $handle_name)) 
-            throw new \InvalidArgumentException('Route handler must be a callable');
+        is_callable($handle, false, $handle_name);
+        // if (!is_callable($handle, false, $handle_name)) 
+            // throw new \InvalidArgumentException('Route handler must be a callable');
 
         $this->name = $handle_name ?? '<anonymous>';
 
@@ -63,14 +62,44 @@ class Layer {
             }
 
             // Matcher using path-to-regex
-            return PathUtils::match($this->options['strict'] ? $this->path : self::loosen($this->path), [
+            return PathUtils::match($this->options['strict'] ? $_path : self::loosen($_path), [
                 'sensitive' => $this->options['sensitive'],
                 'end' => $this->options['end'],
                 'trailing' => !$this->options['strict'],
-                'decode' => [PathUtils::class, 'decodeParam'],
+                // 'decode' => [self::class, 'decodeParam'],
             ]);
         };
-        $this->matchers = is_array($this->path) ? array_map($matcher, $this->path) : [$matcher($this->path)];
+        $this->matchers = is_array($path) ? array_map($matcher, $path) : [$matcher($path)];
+    }
+
+    public function match(?string $path = null): bool {
+        $match = null;
+
+        if (isset($path)) {
+            if ($this->slash) {
+                $this->params = [];
+                $this->path = '';
+                return true;
+            }
+
+            $i = 0;
+            while (!$match && $i < count($this->matchers)) {
+                $match = $this->matchers[$i]($path);
+                $i++;
+            }
+        }
+
+        if (!$match) {
+            $this->params = null;
+            $this->path = null;
+            return false;
+        }
+
+        $this->params = $match['params'];
+        $this->path = $match['path'];
+        $this->keys = array_keys($match['params']);
+
+        return true;
     }
 
     /* ---------- Layer Util ---------- */
@@ -78,7 +107,10 @@ class Layer {
     /**
      * Decode a URL parameter, ensuring it's valid UTF-8. Throws an exception if decoding fails.
      */
-    public static function decodeParam(string $val): string {
+    public static function decodeParam(?string $val): string|null {
+        if (!is_string($val) || strlen($val) === 0) 
+            return $val;
+        
         $decoded = rawurldecode($val);
         if (!mb_check_encoding($decoded, 'UTF-8')) 
            throw new \InvalidArgumentException("Failed to decode param '$val'");
