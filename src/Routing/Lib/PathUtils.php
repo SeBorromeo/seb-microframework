@@ -1,6 +1,15 @@
 <?php namespace Sebastian\MicroFramework\Routing\Lib;
 
+use Sebastian\MicroFramework\Routing\Lib\AST\Group;
+use Sebastian\MicroFramework\Routing\Lib\AST\Key;
+use Sebastian\MicroFramework\Routing\Lib\AST\Parameter;
+use Sebastian\MicroFramework\Routing\Lib\AST\Text;
+use Sebastian\MicroFramework\Routing\Lib\AST\Token;
+use Sebastian\MicroFramework\Routing\Lib\AST\Wildcard;
+use Sebastian\MicroFramework\Routing\Lib\AST\TokenData;
 use Sebastian\MicroFramework\Routing\Lib\Exception\PathException;
+use Sebastian\MicroFramework\Routing\Lib\Lexer\LexToken;
+use Sebastian\MicroFramework\Routing\Lib\Lexer\TokenType;
 
 const DEFAULT_DELIMITER = '/';
 function noop($v) { return $v; }
@@ -19,69 +28,6 @@ const SIMPLE_TOKENS = [
     "?" => TokenType::Optional,
     "!" => TokenType::Exclamation,
 ];
-
-class LexToken {
-    public function __construct(
-        public readonly TokenType $type,
-        public readonly int $index,
-        public readonly string $value,
-    ) {}
-}
-
-enum TokenNodeType: string {
-    case Text = 'text';
-    case Param = 'param';
-    case Wildcard = 'wildcard';
-    case Group = 'group';
-}
-
-abstract class Token {
-    public function __construct(
-        public readonly TokenNodeType $type,
-    ) {}
-}
-
-abstract class FlatToken extends Token {}
-abstract class Key extends FlatToken {}
-
-class Text extends FlatToken {
-    public function __construct(
-        public readonly string $value
-    ) {
-        parent::__construct(TokenNodeType::Text);
-    }
-}
-
-class Parameter extends Key {
-    public function __construct(
-        public readonly string $name
-    ) {
-        parent::__construct(TokenNodeType::Param);
-    }
-}
-
-class Wildcard extends Key {
-    public function __construct(
-        public readonly string $name
-    ) {
-        parent::__construct(TokenNodeType::Wildcard);
-    }
-}
-
-class Group extends Token {
-    /** 
-     * @var Token[] 
-     */
-    public readonly array $tokens;
-
-    /**
-     * @param Token[] $tokens
-     */
-    public function __construct(array $tokens) {
-        $this->tokens = $tokens;
-        parent::__construct(TokenNodeType::Group);
-    }
-}
 
 class PathUtils {  
     /* ---------- Parse ---------- */
@@ -216,9 +162,9 @@ class PathUtils {
 
     /* ---------- Compile ---------- */
 
-    public function compile(Path $path, array $options = []): callable {
-        return function() {};
-    }
+    // public function compile(Path $path, array $options = []): callable {
+    //     return function() {};
+    // }
 
     private function tokensToFunction(array $tokens, string $delimiter, callable|false $encode): callable {
         return function() {}; // TODO
@@ -439,9 +385,9 @@ class PathUtils {
                 continue;
             } 
 
-            if ($token instanceof Parameter || $token instanceof Wildcard) {
+            if ($token instanceof Key) {
                 if (!$isSafeSegmentParam && !$backtrack) 
-                    throw new PathException("Missing text before $token->name $token->type", $originalPath);
+                    throw new PathException("Missing text before $token->name " . $token->type(), $originalPath);
 
                 if ($token instanceof Parameter) {
                     $result .= '(' . self::negate($delimiter, $isSafeSegmentParam ? '' : $backtrack) . '+)';

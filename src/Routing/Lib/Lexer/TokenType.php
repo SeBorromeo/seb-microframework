@@ -1,4 +1,4 @@
-<?php namespace Sebastian\MicroFramework\Routing\Lib;
+<?php namespace Sebastian\MicroFramework\Routing\Lib\Lexer;
 
 enum TokenType: string {
     case LBrace = '{';
