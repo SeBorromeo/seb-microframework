@@ -38,9 +38,9 @@ class PathUtils {
      * @param string $string 
      *  - The path string to parse
      * 
-     * @param array $options {
+     * @param array{
      *   encodePath?: callable(string): string
-     * }
+     * } $options
      *  - Optional settings
      * 
      * @return TokenData
@@ -183,10 +183,10 @@ class PathUtils {
      * @param string|array $path
      *  - A path string or an array of path strings to match against.
      * 
-     * @param array $options {
-     *   decode?: callable(string): string,
-     *   delimiter?: string
-     * }
+     * @param array{
+     *     decode?: callable(string): string,
+     *     delimiter?: string
+     * } $options
      * 
      * @return callable(string): array|false
      */
@@ -194,13 +194,13 @@ class PathUtils {
         $decode    = $options['decode']    ?? [PathUtils::class, 'decodeURIComponent'];
         $delimiter = $options['delimiter'] ?? DEFAULT_DELIMITER;
 
-        [$regex, $keys] = self::pathToRegex($path, $options);
+        ['regex' => $regex, 'keys' => $keys] = self::pathToRegex($path, $options);
     
-        $decoders = array_map(function($key) use ($decode, $delimiter) { 
+        $decoders = array_map(function(Key $key) use ($decode, $delimiter) { 
             if (!$decode)
                 return noop(...);
 
-            if ($key->type === 'param')
+            if ($key->type() === 'param')
                 return $decode;
             
             return fn(string $value) => array_map($decode, explode($delimiter, $value));
@@ -233,14 +233,19 @@ class PathUtils {
      * @param string|array $path
      *  - A path string or an array of path strings to convert into regex patterns.
      * 
-     * @param array $options {
+     * @param array{
      *   delimiter?: string,
      *   end?: bool,
      *   sensitive?: bool,
      *   trailing?: bool
-     * }
+     * } $options
+     *  - An array of options to control the regex generation.
+     *    - delimiter: The delimiter to use for matching path segments (default: DEFAULT_DELIMITER).
+     *    - end: Whether to match the end of the path (default: true).
+     *    - sensitive: Whether to generate a case-sensitive regex (default: false).
+     *    - trailing: Whether to allow trailing delimiters (default: true).
      * 
-     * @return array
+     * @return array{regex: Regex, keys: Parameter[]}
       *  - An array containing the compiled regex pattern and an array of parameter keys.
      */
     public static function pathToRegex(string|array $path, array $options = []): array {
@@ -249,6 +254,7 @@ class PathUtils {
         $sensitive = $options['sensitive'] ?? false;
         $trailing  = $options['trailing']  ?? true;
 
+        /** @var Parameter[] */
         $keys = [];
         $flags = $sensitive ? '' : 'i';
         $sources = [];
@@ -267,7 +273,7 @@ class PathUtils {
         $pattern .= $end ? '$' : '(?=' . preg_quote($delimiter) . '|$)';
         
         $regex = Regex::fromString($pattern, $flags);
-        return [$regex, $keys];
+        return ['regex' => $regex, 'keys' => $keys];
     }
 
     /** 
@@ -441,9 +447,12 @@ class PathUtils {
     /* ---------- Helper ---------- */
     
     /**
-     * Decode a URI component, throwing an exception if the result is not valid UTF-8.
+     * Decode a URI component.
+     * 
+     * @throws \InvalidArgumentException
+     *  - If the decoded value is not valid UTF-8.
      */
-    public static function decodeURIComponent(string $val): string {
+    private static function decodeURIComponent(string $val): string {
         $decoded = rawurldecode($val);
         if (!mb_check_encoding($decoded, 'UTF-8')) 
            throw new \InvalidArgumentException("Failed to decode param '$val'");

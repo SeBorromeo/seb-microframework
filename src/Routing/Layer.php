@@ -73,21 +73,30 @@ class Layer {
         $this->matchers = is_array($path) ? array_map($matcher, $path) : [$matcher($path)];
     }
 
-    public function match(?string $path = null): bool {
+    /**
+     * Attempt to match the given path against this layer's path pattern. If a match is found, the matched path and extracted parameters are stored in the layer's properties.
+     * 
+     * @param string $path
+     *  - The request path to match against this layer's pattern.
+     * 
+     * @return bool
+     *  - True if the path matches this layer's pattern, false otherwise. If true, the matched path and parameters are stored in $this->path and $this->params.
+     * 
+     * @internal
+     */
+    public function match(string $path): bool {
         $match = null;
 
-        if (isset($path)) {
-            if ($this->slash) {
-                $this->params = [];
-                $this->path = '';
-                return true;
-            }
+        if ($this->slash) {
+            $this->params = [];
+            $this->path = '';
+            return true;
+        }
 
-            $i = 0;
-            while (!$match && $i < count($this->matchers)) {
-                $match = $this->matchers[$i]($path);
-                $i++;
-            }
+        $i = 0;
+        while (!$match && $i < count($this->matchers)) {
+            $match = $this->matchers[$i]($path);
+            $i++;
         }
 
         if (!$match) {
