@@ -1,5 +1,10 @@
 <?php namespace Sebastian\MicroFramework\Routing;
 
+use Exception;
+use ReflectionFunction;
+use ReflectionMethod;
+use Sebastian\MicroFramework\Http\Request;
+use Sebastian\MicroFramework\Http\Response;
 use Sebastian\MicroFramework\Routing\Lib\PathUtils;
 use Sebastian\MicroFramework\Routing\Lib\Regex;
 
@@ -75,13 +80,26 @@ class Layer {
     }
 
     /**
+     * Handle the error for the layer.
+     * 
+     * @internal
+     */
+    public function handleError(\Throwable|string $error, Request $req, Response $res, callable $next) {
+        $fn = $this->handle;
+
+        if (self::getNumParams($fn) !== 4) 
+            return $next($error);
+
+        try {
+            $fn($error, $req, $res, $next);
+        } catch(Exception $err) {
+            $next($err);
+        }
+    }
+
+
+    /**
      * Attempt to match the given path against this layer's path pattern. If a match is found, the matched path and extracted parameters are stored in the layer's properties.
-     * 
-     * @param string $path
-     *  - The request path to match against this layer's pattern.
-     * 
-     * @return bool
-     *  - True if the path matches this layer's pattern, false otherwise. If true, the matched path and parameters are stored in $this->path and $this->params.
      * 
      * @internal
      */
@@ -116,6 +134,16 @@ class Layer {
     /* ---------- Layer Util ---------- */
 
     /**
+     * Returns the number of params given a callable.
+     */
+    private static function getNumParams(callable $callable): int {
+        $CReflection = is_array($callable) ? 
+            new ReflectionMethod($callable[0], $callable[1]) : 
+            new ReflectionFunction($callable);
+        return $CReflection->getNumberOfParameters();
+    }
+
+    /**
      * Decode a URL parameter, ensuring it's valid UTF-8. Throws an exception if decoding fails.
      */
     public static function decodeParam(?string $val): string|null {
@@ -133,9 +161,8 @@ class Layer {
      * Remove trailing slashes from a path, unless it's the root path. Used when strict routing is disabled.
      */
     public static function loosen(array|string $path): string {
-        if ($path === '/') {
+        if ($path === '/') 
             return $path;
-        }
 
         return is_array($path) ? array_map([self::class, 'loosen'], $path) : rtrim($path, '/');
     }

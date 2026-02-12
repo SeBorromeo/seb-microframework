@@ -1,6 +1,8 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
+use Sebastian\MicroFramework\Http\Request;
+use Sebastian\MicroFramework\Http\Response;
 use Sebastian\MicroFramework\Routing\Layer;
 use Sebastian\MicroFramework\Routing\Lib\Regex;
 
@@ -97,5 +99,67 @@ class LayerTest extends TestCase {
         $this->assertTrue($layer->match('/'));
         $this->assertSame('', $layer->path);
         $this->assertSame([], $layer->params);
+    }
+
+    /* ---------- Handle Error ---------- */
+
+    public function testHandleErrorWithNonErrorHandler(): void {
+        $handlerReached = false;
+        $layer = new Layer('/', [], function($req, $res, $next) use (&$handlerReached) {
+            $handlerReached = true;
+        });
+
+        $reqMock = $this->createMock(Request::class);
+        $resMock = $this->createMock(Response::class);
+
+        $nextReached = false;
+        $errorValue = '';
+        $layer->handleError('error', $reqMock, $resMock, function($err) use (&$nextReached, &$errorValue) {
+            $nextReached = true;
+            $errorValue = $err;
+        });
+
+        $this->assertTrue($nextReached);
+        $this->assertFalse($handlerReached);
+        $this->assertSame('error', $errorValue);
+    }
+
+    public function testHandleErrorWithErrorHandler(): void {
+        $handlerReached = false;
+        $errorValue = '';
+        $layer = new Layer('/', [], function($err, $req, $res, $next) use (&$handlerReached, &$errorValue) {
+            $handlerReached = true;
+            $errorValue = $err;
+        });
+
+        $reqMock = $this->createMock(Request::class);
+        $resMock = $this->createMock(Response::class);
+
+        $nextReached = false;
+        $layer->handleError('error', $reqMock, $resMock, function($err) use (&$nextReached) {
+            $nextReached = true;
+        });
+
+        $this->assertFalse($nextReached);
+        $this->assertTrue($handlerReached);
+        $this->assertSame('error', $errorValue);
+    }
+
+    public function testHandleErrorWithErrorThrown(): void {
+        $layer = new Layer('/', [], function($err, $req, $res, $next) {
+            throw new \Exception('thrown error');
+        });
+
+        $reqMock = $this->createMock(Request::class);
+        $resMock = $this->createMock(Response::class);
+
+        /** @var \Exception */
+        $errorValue = null;
+        $layer->handleError('error', $reqMock, $resMock, function($err) use (&$errorValue) {
+            $errorValue = $err;
+        });
+
+        $this->assertInstanceOf(\Exception::class, $errorValue);
+        $this->assertSame('thrown error', $errorValue->getMessage());
     }
 }
