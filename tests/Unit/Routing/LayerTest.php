@@ -162,4 +162,60 @@ class LayerTest extends TestCase {
         $this->assertInstanceOf(\Exception::class, $errorValue);
         $this->assertSame('thrown error', $errorValue->getMessage());
     }
+
+    /* ---------- Handle Request ---------- */
+
+    public function testHandleRequestWithNonErrorHandler(): void {
+        $handlerReached = false;
+        $layer = new Layer('/', [], function($req, $res, $next) use (&$handlerReached) {
+            $handlerReached = true;
+        });
+
+        $reqMock = $this->createMock(Request::class);
+        $resMock = $this->createMock(Response::class);
+
+        $nextReached = false;
+        $layer->handleRequest($reqMock, $resMock, function() use (&$nextReached) {
+            $nextReached = true;
+        });
+
+        $this->assertFalse($nextReached);
+        $this->assertTrue($handlerReached);
+    }
+
+    public function testHandleRequestWithErrorHandler(): void {
+        $handlerReached = false;
+        $layer = new Layer('/', [], function($err, $req, $res, $next) use (&$handlerReached) {
+            $handlerReached = true;
+        });
+
+        $reqMock = $this->createMock(Request::class);
+        $resMock = $this->createMock(Response::class);
+
+        $nextReached = false;
+        $layer->handleRequest($reqMock, $resMock, function() use (&$nextReached) {
+            $nextReached = true;
+        });
+
+        $this->assertTrue($nextReached);
+        $this->assertFalse($handlerReached);
+    }
+
+    public function testHandleRequestWithErrorThrown(): void {
+        $layer = new Layer('/', [], function($req, $res, $next) {
+            throw new \Exception('thrown error');
+        });
+
+        $reqMock = $this->createMock(Request::class);
+        $resMock = $this->createMock(Response::class);
+
+        /** @var \Exception */
+        $errorValue = null;
+        $layer->handleRequest($reqMock, $resMock, function($err) use (&$errorValue) {
+            $errorValue = $err;
+        });
+
+        $this->assertInstanceOf(\Exception::class, $errorValue);
+        $this->assertSame('thrown error', $errorValue->getMessage());
+    }
 }

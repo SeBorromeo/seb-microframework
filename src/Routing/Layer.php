@@ -97,6 +97,23 @@ class Layer {
         }
     }
 
+    /**
+     * Handle the request for the layer.
+     * 
+     * @internal
+     */
+    public function handleRequest(Request $req, Response $res, callable $next) {
+        $fn = $this->handle;
+        
+        if (self::getNumParams($fn) > 3) 
+            return $next();
+
+        try {
+            $fn($req, $res, $next);
+        } catch(Exception $err) {
+            $next($err);
+        }
+    }
 
     /**
      * Attempt to match the given path against this layer's path pattern. If a match is found, the matched path and extracted parameters are stored in the layer's properties.

@@ -3,10 +3,8 @@
 use PHPUnit\Framework\TestCase;
 use Sebastian\MicroFramework\View\Engine\PhpEngine;
 
-class PhpEngineIntegrationTest extends TestCase
-{
-    public function testRendersValidPhpFile(): void
-    {
+class PhpEngineIntegrationTest extends TestCase {
+    public function testRendersValidPhpFile(): void {
         $engine = new PhpEngine();
 
         $result = $engine->render(
@@ -17,8 +15,7 @@ class PhpEngineIntegrationTest extends TestCase
         $this->assertStringContainsString('<h1>Hello</h1>', $result);
     }
 
-    public function testRendersWithoutData(): void
-    {
+    public function testRendersWithoutData(): void {
         $engine = new PhpEngine();
 
         $result = $engine->render(
