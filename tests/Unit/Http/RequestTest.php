@@ -18,7 +18,7 @@ class RequestTest extends TestCase {
         $this->assertFalse(isset($req->userId));
 
         $this->expectException(\LogicException::class);
-        $req->method = 'This shouldnt be possible';
+        $req->params = [];
     }
 
     public function testContentTypeParsing(): void {

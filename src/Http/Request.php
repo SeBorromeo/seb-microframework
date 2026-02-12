@@ -10,7 +10,7 @@ class Request {
     private array $serverParams;
     private array $attributes = [];
 
-    private string $method;
+    public readonly string $method;
     private string $path;
     private string $contentType;
     
@@ -36,8 +36,6 @@ class Request {
     }
 
     // HTTP Method
-    public function method(): string { return $this->method; }
-
     public function path(): string { return $this->path; }
 
     public function uri(): string { 
