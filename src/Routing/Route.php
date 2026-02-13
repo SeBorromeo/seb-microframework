@@ -8,6 +8,7 @@ use Sebastian\MicroFramework\Routing\Layer;
 use Sebastian\MicroFramework\Routing\Lib\Regex;
 
 class Route {
+    /** @var Layer[] */
     private array $stack = [];
     private array $methods = [];
 
@@ -20,7 +21,7 @@ class Route {
      * 
      * @internal
      */
-    public function _handlesMethod(string $method): bool {
+    public function handlesMethod(string $method): bool {
         if ($this->methods['_all']) 
             return true;
 
@@ -30,7 +31,7 @@ class Route {
             $method = 'get';
         }
 
-        return $this->methods[$method];
+        return isset($this->methods[$method]) && $this->methods[$method];
     }
 
     /**
@@ -40,7 +41,7 @@ class Route {
        * 
        * @internal
      */
-    public function _methods(): array {
+    public function methods(): array {
         $methods = array_keys($this->methods);
         if ($this->methods['get'] && $this->methods['head']) {
             $methods[] = 'head';
@@ -54,7 +55,7 @@ class Route {
      *
      * @internal
      */
-    public function _dispatch(Request $req, Response $res, callable $done) {
+    public function dispatch(Request $req, Response $res, callable $done) {
         $idx = 0;
         $stack = $this->stack;
         $sync = 0;
@@ -70,16 +71,20 @@ class Route {
 
         $req->route = $this;
 
-        $next = function(?\Throwable $err = null) use (&$idx, &$sync, $stack, $method, $req, $res, $done, &$next) {
-            if ($err && $err === 'route') 
+        $next = function(\Throwable|string|null $err = null) use (&$idx, &$sync, $stack, $method, $req, $res, $done, &$next) {
+            // signal to exit route
+            if ($err === 'route') 
                 return $done();
 
-            if ($err && $err === 'router') 
+            // signal to exit router
+            if ($err === 'router') 
                 return $done($err);
 
+            // no more matching layers
             if ($idx >= count($stack)) 
                 return $done($err);
 
+            // max sync stack
             if (++$sync > 100) 
                 return $next($err);
 
@@ -134,21 +139,21 @@ class Route {
      * @throws InvalidArgumentException
      */
     private function addMethod(string $method, callable|array ...$handlers): Route {
-        if (count($handlers) === 0)
-            throw new \InvalidArgumentException('At least one handler required.');
-
         $callbacks = [];
 
         array_walk_recursive($handlers, function($h) use (&$callbacks) {
             $callbacks[] = $h;
         });
 
+        if (count($callbacks) === 0)
+            throw new \InvalidArgumentException('At least one handler required.');
+
         foreach ($callbacks as $callback) {
             if (!is_callable($callback))
                 throw new \InvalidArgumentException('Handlers must be of type callable.');
 
             $layer = new Layer('/', [], $callback);
-            $layer->method = $method;
+            $layer->method = $method === '_all' ? null: $method;
 
             $this->methods[$method] = true;
             $this->stack[] = $layer;
