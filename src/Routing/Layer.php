@@ -1,10 +1,10 @@
-<?php namespace Sebastian\MicroFramework\Routing;
+<?php namespace SeBorromeo\SebMicroframework\Routing;
 
 use Exception;
 use ReflectionFunction;
 use ReflectionMethod;
-use Sebastian\MicroFramework\Http\Request;
-use Sebastian\MicroFramework\Http\Response;
+use SeBorromeo\SebMicroframework\Http\Request;
+use SeBorromeo\SebMicroframework\Http\Response;
 use SeBorromeo\PathToRegex\PathToRegex;
 use SeBorromeo\PathToRegex\Regex;
 

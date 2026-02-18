@@ -1,9 +1,9 @@
-<?php namespace Sebastian\MicroFramework\Http;
+<?php namespace SeBorromeo\SebMicroframework\Http;
 
-use Sebastian\MicroFramework\Application;
-use Sebastian\MicroFramework\Exceptions\Http\ResponseAlreadySentException;
-use Sebastian\MicroFramework\Exceptions\Http\HeadersAlreadySentException;
-use Sebastian\MicroFramework\Exceptions\View\ViewNotFoundException;
+use SeBorromeo\SebMicroframework\Application;
+use SeBorromeo\SebMicroframework\Exceptions\Http\ResponseAlreadySentException;
+use SeBorromeo\SebMicroframework\Exceptions\Http\HeadersAlreadySentException;
+use SeBorromeo\SebMicroframework\Exceptions\View\ViewNotFoundException;
 
 class Response {
     private array $locals = [];

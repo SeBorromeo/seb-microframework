@@ -1,9 +1,9 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
-use Sebastian\MicroFramework\Http\Request;
-use Sebastian\MicroFramework\Http\Response;
-use Sebastian\MicroFramework\Routing\Layer;
+use SeBorromeo\SebMicroframework\Http\Request;
+use SeBorromeo\SebMicroframework\Http\Response;
+use SeBorromeo\SebMicroframework\Routing\Layer;
 use SeBorromeo\PathToRegex\Regex;
 
 class LayerTest extends TestCase {

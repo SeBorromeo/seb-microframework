@@ -1,10 +1,10 @@
-<?php namespace Sebastian\MicroFramework\Routing;
+<?php namespace SeBorromeo\SebMicroframework\Routing;
 
 use InvalidArgumentException;
-use Sebastian\MicroFramework\Http\HttpMethods;
-use Sebastian\MicroFramework\Http\Request;
-use Sebastian\MicroFramework\Http\Response;
-use Sebastian\MicroFramework\Routing\Layer;
+use SeBorromeo\SebMicroframework\Http\HttpMethods;
+use SeBorromeo\SebMicroframework\Http\Request;
+use SeBorromeo\SebMicroframework\Http\Response;
+use SeBorromeo\SebMicroframework\Routing\Layer;
 use SeBorromeo\PathToRegex\Regex;
 
 class Route {

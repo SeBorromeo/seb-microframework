@@ -1,4 +1,4 @@
-<?php namespace Sebastian\MicroFramework\Exceptions\Application;
+<?php namespace SeBorromeo\SebMicroframework\Exceptions\Application;
 
 class InvalidEngineException extends \LogicException
 {

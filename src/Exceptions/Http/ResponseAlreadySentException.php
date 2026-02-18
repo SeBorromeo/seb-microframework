@@ -1,6 +1,4 @@
-<?php
-
-namespace Sebastian\MicroFramework\Exceptions\Http;
+<?php namespace SeBorromeo\SebMicroframework\Exceptions\Http;
 
 class ResponseAlreadySentException extends \LogicException {
     public function __construct(

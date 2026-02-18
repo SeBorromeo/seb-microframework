@@ -1,7 +1,7 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
-use Sebastian\MicroFramework\Http\Request;
+use SeBorromeo\SebMicroframework\Http\Request;
 
 class RequestTest extends TestCase {
     public function testMagicProperties(): void {

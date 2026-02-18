@@ -1,11 +1,10 @@
-<?php namespace Sebastian\MicroFramework;
+<?php namespace SeBorromeo\SebMicroframework;
 
-use LogicException;
-use Sebastian\MicroFramework\Exceptions\Application\InvalidEngineException;
-use Sebastian\MicroFramework\Routing\Router;
-use Sebastian\MicroFramework\View\Engine\EngineInterface;
-use Sebastian\MicroFramework\View\Engine\PhpEngine;
-use Sebastian\MicroFramework\View\Engine\PugEngine;
+use SeBorromeo\SebMicroframework\Exceptions\Application\InvalidEngineException;
+use SeBorromeo\SebMicroframework\Routing\Router;
+use SeBorromeo\SebMicroframework\View\Engine\EngineInterface;
+use SeBorromeo\SebMicroframework\View\Engine\PhpEngine;
+use SeBorromeo\SebMicroframework\View\Engine\PugEngine;
 
 class Application {
     private array $locals = [];

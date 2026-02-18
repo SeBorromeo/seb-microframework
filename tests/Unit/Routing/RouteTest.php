@@ -1,9 +1,9 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
-use Sebastian\MicroFramework\Http\Request;
-use Sebastian\MicroFramework\Http\Response;
-use Sebastian\MicroFramework\Routing\Route;
+use SeBorromeo\SebMicroframework\Http\Request;
+use SeBorromeo\SebMicroframework\Http\Response;
+use SeBorromeo\SebMicroframework\Routing\Route;
 
 class RouteTest extends TestCase {
     public function testConstructor(): void {

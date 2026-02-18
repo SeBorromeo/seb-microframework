@@ -1,4 +1,4 @@
-<?php namespace Sebastian\MicroFramework\Exceptions\View;
+<?php namespace SeBorromeo\SebMicroframework\Exceptions\View;
 
 class InvalidViewException extends \RuntimeException {
     public function __construct(

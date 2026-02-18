@@ -1,6 +1,6 @@
 <?php
 
-namespace Sebastian\MicroFramework\View\Engine;
+namespace SeBorromeo\SebMicroframework\View\Engine;
 
 use Pug\Pug;
 

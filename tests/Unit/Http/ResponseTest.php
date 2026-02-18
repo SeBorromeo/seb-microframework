@@ -1,10 +1,10 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
-use Sebastian\MicroFramework\Http\Response;
-use Sebastian\MicroFramework\Application;
-use Sebastian\MicroFramework\Exceptions\Application\InvalidEngineException;
-use Sebastian\MicroFramework\View\Engine\PhpEngine;
+use SeBorromeo\SebMicroframework\Http\Response;
+use SeBorromeo\SebMicroframework\Application;
+use SeBorromeo\SebMicroframework\Exceptions\Application\InvalidEngineException;
+use SeBorromeo\SebMicroframework\View\Engine\PhpEngine;
 
 class ResponseTest extends TestCase {
     private Application $app;

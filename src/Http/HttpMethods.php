@@ -1,4 +1,4 @@
-<?php namespace Sebastian\MicroFramework\Http;
+<?php namespace SeBorromeo\SebMicroframework\Http;
 
 final class HttpMethods {
     public const ALL = [

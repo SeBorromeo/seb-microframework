@@ -1,6 +1,6 @@
-<?php namespace Sebastian\MicroFramework\Http;
+<?php namespace SeBorromeo\SebMicroframework\Http;
 
-use Sebastian\MicroFramework\Routing\Route;
+use SeBorromeo\SebMicroframework\Routing\Route;
 
 class Request {
     private array $params = [];

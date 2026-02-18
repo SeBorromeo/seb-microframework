@@ -1,7 +1,7 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
-use Sebastian\MicroFramework\View\Engine\PhpEngine;
+use SeBorromeo\SebMicroframework\View\Engine\PhpEngine;
 
 class PhpEngineIntegrationTest extends TestCase {
     public function testRendersValidPhpFile(): void {

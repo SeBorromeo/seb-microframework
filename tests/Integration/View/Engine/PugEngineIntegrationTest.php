@@ -1,7 +1,7 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
-use Sebastian\MicroFramework\View\Engine\PugEngine;
+use SeBorromeo\SebMicroframework\View\Engine\PugEngine;
 
 class PugEngineIntegrationTest extends TestCase {
     public function testRendersValidPugFile(): void {
