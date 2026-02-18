@@ -1,11 +1,11 @@
 {
-  "name": "sebastian/seb-microframework",
+  "name": "seborromeo/seb-microframework",
   "description": "'Seb', a lightweight PHP micro-framework inspired by Express",
   "type": "library",
   "license": "MIT",
   "autoload": {
     "psr-4": {
-      "Sebastian\\MicroFramework\\": "src/"
+      "SeBorromeo\\MicroFramework\\": "src/"
     }
   },
   "require": {
