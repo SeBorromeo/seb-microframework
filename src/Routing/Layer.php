@@ -5,8 +5,8 @@ use ReflectionFunction;
 use ReflectionMethod;
 use Sebastian\MicroFramework\Http\Request;
 use Sebastian\MicroFramework\Http\Response;
-use Sebastian\MicroFramework\Routing\Lib\PathUtils;
-use Sebastian\MicroFramework\Routing\Lib\Regex;
+use SeBorromeo\PathToRegex\PathToRegex;
+use SeBorromeo\PathToRegex\Regex;
 
 const MATCHING_GROUP_REGEXP = '/\((?:\?<(.*?)>)?(?!\?)/';
 
@@ -15,7 +15,7 @@ class Layer {
     public ?array $params = [];
     public ?string $path = null;
     public readonly string $name;
-    public mixed $method;
+    public string $method;
 
     private bool $slash;
     private $matchers;
@@ -69,7 +69,7 @@ class Layer {
             }
 
             // Matcher using path-to-regex
-            return PathUtils::match($this->options['strict'] ? $_path : self::loosen($_path), [
+            return PathToRegex::match($this->options['strict'] ? $_path : self::loosen($_path), [
                 'sensitive' => $this->options['sensitive'],
                 'end' => $this->options['end'],
                 'trailing' => !$this->options['strict'],

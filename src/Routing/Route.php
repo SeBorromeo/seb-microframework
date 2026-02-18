@@ -5,7 +5,7 @@ use Sebastian\MicroFramework\Http\HttpMethods;
 use Sebastian\MicroFramework\Http\Request;
 use Sebastian\MicroFramework\Http\Response;
 use Sebastian\MicroFramework\Routing\Layer;
-use Sebastian\MicroFramework\Routing\Lib\Regex;
+use SeBorromeo\PathToRegex\Regex;
 
 class Route {
     /** @var Layer[] */

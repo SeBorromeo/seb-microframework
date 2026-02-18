@@ -4,7 +4,7 @@ use PHPUnit\Framework\TestCase;
 use Sebastian\MicroFramework\Http\Request;
 use Sebastian\MicroFramework\Http\Response;
 use Sebastian\MicroFramework\Routing\Layer;
-use Sebastian\MicroFramework\Routing\Lib\Regex;
+use SeBorromeo\PathToRegex\Regex;
 
 class LayerTest extends TestCase {
     /* ---------- Constructor ---------- */
