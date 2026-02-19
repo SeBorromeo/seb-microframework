@@ -15,18 +15,18 @@ class Layer {
     public ?array $keys;
 
     public readonly string $name;
-    private readonly bool $slash;
+    public readonly bool $slash;
     private readonly array $matchers;
+
+    public readonly ?HttpMethod $method;
+    public readonly ?Route $route;
 
     public function __construct(
         Regex|array|string $path,
         public readonly array $options = [],
         public readonly mixed $handle = null,
-        public readonly ?HttpMethod $method = null,
-        public readonly ?Route $route = null
+        public readonly HttpMethod|Route|null $methodOrRoute = null,
     ) {
-        $this->slash = $path === '/' && $this->options['end'] === false;
-
         if ($handle && !is_callable($handle, false, $handle_name)) 
             throw new \InvalidArgumentException('Route handler must be a callable');
         
@@ -34,6 +34,11 @@ class Layer {
             ? '<anonymous>'
             : ($handle_name ?: '<anonymous>');
 
+        $this->slash = $path === '/' && $this->options['end'] === false;
+
+        $this->method = $methodOrRoute instanceof HttpMethod ? $methodOrRoute : null;
+        $this->route  = $methodOrRoute instanceof Route ? $methodOrRoute : null;
+        
         $matcher = function(Regex|string $_path): callable {
             if ($_path instanceof Regex) {
                 $keys = [];
