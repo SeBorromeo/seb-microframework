@@ -5,7 +5,7 @@
   "license": "MIT",
   "autoload": {
     "psr-4": {
-      "SeBorromeo\\MicroFramework\\": "src/"
+      "SeBorromeo\\SebMicroframework\\": "src/"
     }
   },
   "require": {
