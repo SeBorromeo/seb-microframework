@@ -1,10 +1,10 @@
 <?php namespace SeBorromeo\SebMicroframework\Routing;
 
-use InvalidArgumentException;
 use SeBorromeo\SebMicroframework\Http\HttpMethods;
 use SeBorromeo\SebMicroframework\Http\Request;
 use SeBorromeo\SebMicroframework\Http\Response;
 use SeBorromeo\SebMicroframework\Routing\Layer;
+use SeBorromeo\SebMicroframework\Http\HttpMethod;
 use SeBorromeo\PathToRegex\Regex;
 
 class Route {
@@ -21,33 +21,26 @@ class Route {
      * 
      * @internal
      */
-    public function handlesMethod(string $method): bool {
-        if ($this->methods['_all']) 
+    public function handlesMethod(HttpMethod $method): bool {
+        if ($this->methods[HttpMethod::ALL->value]) 
             return true;
 
-        $method = strtolower($method);
-
-        if ($method === 'head' && !$this->methods['head']) {
-            $method = 'get';
+        if ($method === HttpMethod::HEAD && !$this->methods[HttpMethod::HEAD->value]) {
+            $method = HttpMethod::GET;
         }
 
-        return isset($this->methods[$method]) && $this->methods[$method];
+        return isset($this->methods[$method->value]) && $this->methods[$method->value];
     }
 
     /**
      * Get the list of HTTP methods that this route handles.
       * 
-       * @return string[]
+       * @return HttpMethod[]
        * 
        * @internal
      */
     public function methods(): array {
-        $methods = array_keys($this->methods);
-        if ($this->methods['get'] && $this->methods['head']) {
-            $methods[] = 'head';
-        }
-
-        return array_map('strtoupper', $methods);
+        return array_values($this->methods);
     }   
 
     /**
@@ -63,10 +56,10 @@ class Route {
         if (count($stack) === 0) 
             return $done();
 
-        $method = strtolower($req->method);
+        $method = $req->method;
 
-        if ($method === 'head' && !$this->methods['head']) {
-            $method = 'get';
+        if ($method === HttpMethod::HEAD && !$this->methods[HttpMethod::HEAD->value]) {
+            $method = HttpMethod::GET;
         }
 
         $req->route = $this;
@@ -93,7 +86,7 @@ class Route {
 
             while (!$match && $idx < count($stack)) {
                 $layer = $stack[$idx++];
-                $match = !$layer->method || $layer->method === $method;
+                $match = $layer->method === HttpMethod::ALL || $layer->method === $method;
             }
 
             if (!$match)
@@ -115,7 +108,7 @@ class Route {
      * Add a handler or list of handlers for all HTTP methods.
      */
     public function all(callable|array ...$handlers): Route {
-        return $this->addMethod('_all', ...$handlers);
+        return $this->addMethod(HttpMethod::ALL, ...$handlers);
     }
 
     /* ---------- HTTP Methods ---------- */
@@ -130,7 +123,7 @@ class Route {
         if (!in_array($method, HttpMethods::all())) 
             throw new \BadMethodCallException("Method $method does not exist.");
 
-        return $this->addMethod($method, ...$args);
+        return $this->addMethod(HttpMethod::fromString($method), ...$args);
     }
 
     /**
@@ -138,7 +131,7 @@ class Route {
      * 
      * @throws InvalidArgumentException
      */
-    private function addMethod(string $method, callable|array ...$handlers): Route {
+    private function addMethod(HttpMethod $method, callable|array ...$handlers): Route {
         $callbacks = [];
 
         array_walk_recursive($handlers, function($h) use (&$callbacks) {
@@ -152,10 +145,10 @@ class Route {
             if (!is_callable($callback))
                 throw new \InvalidArgumentException('Handlers must be of type callable.');
 
-            $layer = new Layer('/', [], $callback);
-            $layer->method = $method === '_all' ? null: $method;
 
-            $this->methods[$method] = true;
+            $layer = new Layer('/', [], $callback, $method);
+
+            $this->methods[$method->value] = $method;
             $this->stack[] = $layer;
         }
 

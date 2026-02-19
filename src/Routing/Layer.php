@@ -1,8 +1,6 @@
 <?php namespace SeBorromeo\SebMicroframework\Routing;
 
-use Exception;
-use ReflectionFunction;
-use ReflectionMethod;
+use SeBorromeo\SebMicroframework\Http\HttpMethod;
 use SeBorromeo\SebMicroframework\Http\Request;
 use SeBorromeo\SebMicroframework\Http\Response;
 use SeBorromeo\PathToRegex\PathToRegex;
@@ -11,19 +9,21 @@ use SeBorromeo\PathToRegex\Regex;
 const MATCHING_GROUP_REGEXP = '/\((?:\?<(.*?)>)?(?!\?)/';
 
 class Layer {
-    public array $keys = [];
-    public ?array $params = [];
-    public ?string $path = null;
-    public readonly string $name;
-    public string $method;
+    // Set by match function
+    public ?array $params;
+    public ?string $path;
+    public ?array $keys;
 
-    private bool $slash;
-    private $matchers;
+    public readonly string $name;
+    private readonly bool $slash;
+    private readonly array $matchers;
 
     public function __construct(
         Regex|array|string $path,
         public readonly array $options = [],
         public readonly mixed $handle = null,
+        public readonly ?HttpMethod $method = null,
+        public readonly ?Route $route = null
     ) {
         $this->slash = $path === '/' && $this->options['end'] === false;
 
@@ -84,15 +84,17 @@ class Layer {
      * 
      * @internal
      */
-    public function handleError(\Throwable|string $error, Request $req, Response $res, callable $next) {
+    public function handleError(\Throwable|string $error, Request $req, Response $res, callable $next): void {
         $fn = $this->handle;
 
-        if (self::getNumParams($fn) !== 4) 
-            return $next($error);
+        if (self::getNumParams($fn) !== 4) {
+            $next($error);
+            return;
+        }
 
         try {
             $fn($error, $req, $res, $next);
-        } catch(Exception $err) {
+        } catch(\Exception $err) {
             $next($err);
         }
     }
@@ -102,15 +104,17 @@ class Layer {
      * 
      * @internal
      */
-    public function handleRequest(Request $req, Response $res, callable $next) {
+    public function handleRequest(Request $req, Response $res, callable $next): void {
         $fn = $this->handle;
         
-        if (self::getNumParams($fn) > 3) 
-            return $next();
+        if (self::getNumParams($fn) > 3) {
+            $next();
+            return;
+        }
 
         try {
             $fn($req, $res, $next);
-        } catch(Exception $err) {
+        } catch(\Exception $err) {
             $next($err);
         }
     }
@@ -155,13 +159,13 @@ class Layer {
      */
     private static function getNumParams(callable $callable): int {
         $CReflection = is_array($callable) ? 
-            new ReflectionMethod($callable[0], $callable[1]) : 
-            new ReflectionFunction($callable);
+            new \ReflectionMethod($callable[0], $callable[1]) : 
+            new \ReflectionFunction($callable);
         return $CReflection->getNumberOfParameters();
     }
 
     /**
-     * Decode a URL parameter, ensuring it's valid UTF-8. Throws an exception if decoding fails.
+     * Decode a URL parameter, ensuring it's valid UTF-8. Throws an exception if decoding fails. 
      */
     public static function decodeParam(?string $val): string|null {
         if (!is_string($val) || strlen($val) === 0) 
@@ -177,7 +181,7 @@ class Layer {
     /**
      * Remove trailing slashes from a path, unless it's the root path. Used when strict routing is disabled.
      */
-    public static function loosen(array|string $path): string {
+    private static function loosen(array|string $path): string {
         if ($path === '/') 
             return $path;
 

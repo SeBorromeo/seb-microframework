@@ -1,6 +1,7 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
+use SeBorromeo\SebMicroframework\Http\HttpMethod;
 use SeBorromeo\SebMicroframework\Http\Request;
 use SeBorromeo\SebMicroframework\Http\Response;
 use SeBorromeo\SebMicroframework\Routing\Route;
@@ -16,9 +17,9 @@ class RouteTest extends TestCase {
         $route = new Route('/users/:id');
         $route->get(function() {});
 
-        $this->assertTrue($route->handlesMethod('GET'));
-        $this->assertTrue($route->handlesMethod('HEAD'));
-        $this->assertFalse($route->handlesMethod('POST'));
+        $this->assertTrue($route->handlesMethod(HttpMethod::GET));
+        $this->assertTrue($route->handlesMethod(HttpMethod::HEAD));
+        $this->assertFalse($route->handlesMethod(HttpMethod::POST));
     }
 
     public function testMethods(): void {
@@ -28,18 +29,18 @@ class RouteTest extends TestCase {
 
         $methods = $route->methods();
         $this->assertCount(2, $methods);
-        $this->assertContains('GET', $methods);
-        $this->assertContains('POST', $methods);
+        $this->assertContains(HttpMethod::GET, $methods);
+        $this->assertContains(HttpMethod::POST, $methods);
     }
 
     public function testAllMethod(): void {
         $route = new Route('/users/:id');
         $route->all(function() {});
 
-        $this->assertTrue($route->handlesMethod('GET'));
-        $this->assertTrue($route->handlesMethod('POST'));
-        $this->assertTrue($route->handlesMethod('PUT'));
-        $this->assertTrue($route->handlesMethod('DELETE'));
+        $this->assertTrue($route->handlesMethod(HttpMethod::GET));
+        $this->assertTrue($route->handlesMethod(HttpMethod::POST));
+        $this->assertTrue($route->handlesMethod(HttpMethod::PUT));
+        $this->assertTrue($route->handlesMethod(HttpMethod::DELETE));
     }
 
     public function testDispatch(): void {

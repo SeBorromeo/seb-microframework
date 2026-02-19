@@ -10,7 +10,7 @@ class Request {
     private array $serverParams;
     private array $attributes = [];
 
-    public readonly string $method;
+    public readonly HttpMethod $method;
     private string $path;
     private string $contentType;
     
@@ -28,7 +28,7 @@ class Request {
     
     public function __construct(array|null $serverParams = null) {
         $this->serverParams = $serverParams ?? $_SERVER;
-        $this->method = strtoupper($this->serverParams['REQUEST_METHOD'] ?? 'GET');
+        $this->method = HttpMethod::fromString(strtoupper($this->serverParams['REQUEST_METHOD'] ?? 'GET'));
         $this->path = parse_url($this->serverParams['REQUEST_URI'] ?? '/', PHP_URL_PATH);
         $this->contentType = $this->parseContentType();
         $this->query = $this->parseQuery();
@@ -106,7 +106,7 @@ class Request {
         }
 
         // Form data
-        if (in_array($this->method, ['POST', 'PUT', 'PATCH', 'DELETE'])) {
+        if (in_array($this->method, [HttpMethod::POST, HttpMethod::PUT, HttpMethod::PATCH, HttpMethod::DELETE])) {
             parse_str(file_get_contents('php://input'), $data);
             $this->body = $data;
             return $this->body;
