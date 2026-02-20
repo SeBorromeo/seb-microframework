@@ -4,6 +4,7 @@ use SeBorromeo\SebMicroframework\Http\Request;
 use SeBorromeo\SebMicroframework\Http\Response;
 use SeBorromeo\SebMicroframework\Routing\Layer;
 use SeBorromeo\SebMicroframework\Http\HttpMethod;
+use SeBorromeo\SebMicroframework\Utils\ArrayHelper;
 
 class Route {
     /** @var Layer[] */
@@ -127,11 +128,7 @@ class Route {
      * @throws InvalidArgumentException
      */
     private function addMethod(HttpMethod $method, callable|array ...$handlers): Route {
-        $callbacks = [];
-
-        array_walk_recursive($handlers, function($h) use (&$callbacks) {
-            $callbacks[] = $h;
-        });
+        $callbacks = ArrayHelper::flatten($handlers);
 
         if (count($callbacks) === 0)
             throw new \InvalidArgumentException('At least one handler required.');
