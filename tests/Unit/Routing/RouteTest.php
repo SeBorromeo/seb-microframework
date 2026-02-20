@@ -43,6 +43,13 @@ class RouteTest extends TestCase {
         $this->assertTrue($route->handlesMethod(HttpMethod::DELETE));
     }
 
+    public function testInvalidHttpMethod(): void {
+        $route = new Route('/');
+
+        $this->expectException(\BadMethodCallException::class);
+        $route->invalid(function () {});
+    }
+
     public function testDispatch(): void {
         $route = new Route('/');
         $route->get(function($req, $res) {

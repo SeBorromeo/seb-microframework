@@ -1,19 +1,19 @@
 <?php namespace SeBorromeo\SebMicroframework\Routing;
 
-use SeBorromeo\SebMicroframework\Http\HttpMethods;
 use SeBorromeo\SebMicroframework\Http\Request;
 use SeBorromeo\SebMicroframework\Http\Response;
 use SeBorromeo\SebMicroframework\Routing\Layer;
 use SeBorromeo\SebMicroframework\Http\HttpMethod;
-use SeBorromeo\PathToRegex\Regex;
 
 class Route {
     /** @var Layer[] */
     private array $stack = [];
+
+    /** @var array<string, HttpMethod> */
     private array $methods = [];
 
     public function __construct(
-        public readonly Regex|string $path,
+        public readonly string $path,
     ) {}
 
     /**
@@ -29,7 +29,7 @@ class Route {
             $method = HttpMethod::GET;
         }
 
-        return isset($this->methods[$method->value]) && $this->methods[$method->value];
+        return isset($this->methods[$method->value]);
     }
 
     /**
@@ -104,13 +104,6 @@ class Route {
         $next();
     }
 
-    /**
-     * Add a handler or list of handlers for all HTTP methods.
-     */
-    public function all(callable|array ...$handlers): Route {
-        return $this->addMethod(HttpMethod::ALL, ...$handlers);
-    }
-
     /* ---------- HTTP Methods ---------- */
 
     /**
@@ -120,10 +113,12 @@ class Route {
      * @throws InvalidArgumentException
      */
     public function __call(string $method, array $args): Route {
-        if (!in_array($method, HttpMethods::all())) 
+        $enum = HttpMethod::fromString($method);
+
+        if (is_null($enum)) 
             throw new \BadMethodCallException("Method $method does not exist.");
 
-        return $this->addMethod(HttpMethod::fromString($method), ...$args);
+        return $this->addMethod($enum, ...$args);
     }
 
     /**
@@ -145,8 +140,12 @@ class Route {
             if (!is_callable($callback))
                 throw new \InvalidArgumentException('Handlers must be of type callable.');
 
-
-            $layer = new Layer('/', [], $callback, $method);
+            $layer = new Layer(
+                path: '/', 
+                options: [], 
+                handle: $callback, 
+                method: $method
+            );
 
             $this->methods[$method->value] = $method;
             $this->stack[] = $layer;
