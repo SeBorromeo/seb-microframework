@@ -9,23 +9,23 @@ use SeBorromeo\PathToRegex\Regex;
 const MATCHING_GROUP_REGEXP = '/\((?:\?<(.*?)>)?(?!\?)/';
 
 class Layer {
-    // Set by match function
-    public ?array $params;
-    public ?string $path;
-    public ?array $keys;
-
     public readonly string $name;
-    public readonly bool $slash;
+
+    /** @var Closure[] */
     private readonly array $matchers;
 
-    public readonly ?HttpMethod $method;
-    public readonly ?Route $route;
+    private readonly bool $slash;
 
+    /**
+     * @param string|Regex|string[] $path
+     * @param array<string, mixed> $options
+     */
     public function __construct(
-        Regex|array|string $path,
+        string|Regex|array $path,
         public readonly array $options = [],
         public readonly mixed $handle = null,
-        public readonly HttpMethod|Route|null $methodOrRoute = null,
+        public readonly ?HttpMethod $method = null,
+        public readonly ?Route $route = null,
     ) {
         if ($handle && !is_callable($handle, false, $handle_name)) 
             throw new \InvalidArgumentException('Route handler must be a callable');
@@ -36,9 +36,6 @@ class Layer {
 
         $this->slash = $path === '/' && $this->options['end'] === false;
 
-        $this->method = $methodOrRoute instanceof HttpMethod ? $methodOrRoute : null;
-        $this->route  = $methodOrRoute instanceof Route ? $methodOrRoute : null;
-        
         $matcher = function(Regex|string $_path): callable {
             if ($_path instanceof Regex) {
                 $keys = [];
@@ -129,13 +126,15 @@ class Layer {
      * 
      * @internal
      */
-    public function match(string $path): bool {
+    public function match(string $path): ?MatchResult {
         $match = null;
 
         if ($this->slash) {
-            $this->params = [];
-            $this->path = '';
-            return true;
+            return new MatchResult(
+                params: [],
+                path: '',
+                keys: []
+            );
         }
 
         $i = 0;
@@ -144,17 +143,14 @@ class Layer {
             $i++;
         }
 
-        if (!$match) {
-            $this->params = null;
-            $this->path = null;
-            return false;
-        }
+        if (!$match) 
+            return null;
 
-        $this->params = $match['params'];
-        $this->path = $match['path'];
-        $this->keys = array_keys($match['params']);
-
-        return true;
+        return new MatchResult(
+            params: $match['params'],
+            path: $match['path'],
+            keys: array_keys($match['params'])
+        );
     }
 
     /* ---------- Layer Util ---------- */
