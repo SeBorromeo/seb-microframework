@@ -1,48 +1,97 @@
 <?php namespace SeBorromeo\SebMicroframework\Http;
 
+use SeBorromeo\SebMicroframework\Application;
 use SeBorromeo\SebMicroframework\Routing\Route;
 
 class Request {
-    private array $params = [];
+    private array $params;
     private array $query;   
-    private ?array $body = null; // lazy loaded
+
+    /** @var array<string, string> (Lazy loaded) */
+    private ?array $body = null;
+
     private array $headers;
     private array $serverParams;
     private array $attributes = [];
 
     public readonly HttpMethod $method;
-    private string $path;
+    public readonly string $path;
     private string $contentType;
     
-    // TODO:
     private array $cookies = [];
-    private bool $fresh;
-    private string $host;
-    private string $hostname;
-    private string $ip;
-    private Response $res;
-    private string $protocol;
-    public Route $route;
-    private bool $secure;
+    private array $signedCookies = [];
+
+    public readonly bool $fresh;
 
     
-    public function __construct(array|null $serverParams = null) {
+    public readonly string $host;
+    public readonly string $uri;
+    public readonly string $hostname;
+    public readonly ?string $ip;
+    private Response $res;
+    public readonly string $protocol;
+    public Route $route;
+    public readonly bool $secure;
+
+    private string $baseURl;
+
+    
+    public function __construct(
+        array|null $serverParams = null,
+        public readonly Application $app,
+
+    ) {
         $this->serverParams = $serverParams ?? $_SERVER;
         $this->method = HttpMethod::fromString(strtoupper($this->serverParams['REQUEST_METHOD'] ?? 'GET'));
+
+        $this->protocol = (!empty($this->serverParams['HTTPS']) && $this->serverParams['HTTPS'] !== 'off')
+            ? 'https'
+            : 'http';
+
+        $this->secure = $this->protocol === 'https' ? true : false;
+
+        $this->host = $this->serverParams['HTTP_HOST']
+            ?? $this->serverParams['SERVER_NAME']
+            ?? 'localhost';
+
+        $this->port = (int) ($this->serverParams['SERVER_PORT']);
+        if (!$this->port) {
+            $this->port = $this->secure ? 443 : 80;
+        }
+
+        $host = $this->serverParams['HTTP_HOST']
+            ?? $this->serverParams['SERVER_NAME']
+            ?? 'localhost';
+
+        $this->hostname = explode(':', $host)[0];
+
+        $this->ip = $this->serverParams['HTTP_X_FORWARDED_FOR']
+            ?? $this->serverParams['REMOTE_ADDR']
+            ?? null;
+
+        $this->uri = $this->serverParams['REQUEST_URI'] ?? '/';
+            
         $this->path = parse_url($this->serverParams['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+
         $this->contentType = $this->parseContentType();
+        
         $this->query = $this->parseQuery();
+        
         $this->headers = $this->parseHeaders();
     }
 
     // HTTP Method
-    public function path(): string { return $this->path; }
-
     public function uri(): string { 
         return $this->serverParams['REQUEST_URI'] ?? '/'; 
     }
 
-    // Query parameters (?key=value)
+    /* ---------- Query Parameters ---------- */
+
+    private function parseQuery(): array {
+        parse_str($this->serverParams['QUERY_STRING'] ?? '', $query);
+        return $query;
+    }
+
     public function query(?string $key = null, $default = null) {
         if ($key === null) {
             return $this->query;
@@ -50,11 +99,11 @@ class Request {
         return $this->query[$key] ?? $default;
     }
     
-    // Route parameters (set by router)
-    public function param(?string $key = null, $default = null) {
-        if ($key === null) {
-            return $this->params;
-        }
+    /* ---------- Route Parameters (Set by Router) ---------- */
+
+    public function params() { return $this->params; }
+
+    public function param(string $key, $default = null) {
         return $this->params[$key] ?? $default;
     }
 
@@ -62,7 +111,18 @@ class Request {
         $this->params = $params;
     }
 
-    // Body/Input data
+    public function setParam(string $key, string $val): void {
+        $this->params[$key] = $val;
+    }
+
+    /* ---------- Cookies ---------- */
+
+    public function cookies(): array { return $this->cookies; }
+
+    public function signedCookies(): array { return $this->signedCookies; }
+
+    /* ---------- Body/Input Data ---------- */
+    
     public function input(?string $key = null, $default = null) {
         $body = $this->body();
 
@@ -116,7 +176,8 @@ class Request {
         return $this->body;
     }
 
-    // Headers
+    /* ---------- Headers ---------- */
+
     public function header(string $name, $default = null): ?string { // TODO: alias with get
         $name = strtolower($name);
         return $this->headers[$name] ?? $default;
@@ -130,14 +191,19 @@ class Request {
 
     public function contentType(): string { return $this->contentType; }
 
-    // Magic methods for attributes (e.g., $request->user = $user)
+    /* ---------- Magic Methods For Attributes ---------- */
+
+    /**
+     * (e.g., $request->user = $user)
+     */
+
     public function __get(string $name) { 
         return $this->attributes[$name] ?? null; 
     }
 
     public function __set(string $name, $value): void { 
         if (property_exists($this, $name)) {
-            throw new \LogicException("Cannot set '$name' - use proper methods instead");
+            throw new \LogicException("Cannot set Request->$name. Property of the same name already exists. Use proper methods to modify instead.");
         }
 
         $this->attributes[$name] = $value; 
@@ -151,7 +217,8 @@ class Request {
         unset($this->attributes[$name]); 
     }
 
-    // Alternative explicit methods for attributes
+    /* ---------- Alternative Explicit Methods For Attributes ---------- */
+
     public function setAttribute(string $key, $value): void {
         $this->attributes[$key] = $value;
     }
@@ -160,16 +227,11 @@ class Request {
         return $this->attributes[$key] ?? $default;
     }
 
+    /* ---------- Private Helpers ---------- */
 
-    // Private helpers
     private function parseContentType(): string {
         $contentType = $this->serverParams['CONTENT_TYPE'] ?? '';
         return trim(explode(';', $contentType)[0]);
-    }
-
-    private function parseQuery(): array {
-        parse_str($this->serverParams['QUERY_STRING'] ?? '', $query);
-        return $query;
     }
 
     private function parseHeaders(): array {
