@@ -4,93 +4,117 @@ use SeBorromeo\SebMicroframework\Application;
 use SeBorromeo\SebMicroframework\Routing\Route;
 
 class Request {
-    private array $params;
-    private array $query;   
-
-    /** @var array<string, string> (Lazy loaded) */
     private ?array $body = null;
-
-    private array $headers;
-    private array $serverParams;
+    private array $params; // Done
+    private array $query; // Done
+    private array $headers; // Done
     private array $attributes = [];
 
-    public readonly HttpMethod $method;
-    public readonly string $path;
-    private string $contentType;
-    
-    private array $cookies = [];
+    private array $cookies = []; // Write parse cookies
     private array $signedCookies = [];
 
-    public readonly bool $fresh;
+    private array $ips; // TODO
+    private array $subdomains; // TODO
 
+    private Route $route; 
+    private string $url;
+    private string $path;
+    private string $baseUrl = '/';
     
-    public readonly string $host;
+    public readonly HttpMethod $method;
+    public readonly string $originalUrl;
     public readonly string $uri;
+    public readonly string $host;
     public readonly string $hostname;
     public readonly ?string $ip;
-    private Response $res;
     public readonly string $protocol;
-    public Route $route;
     public readonly bool $secure;
+    public readonly bool $xhr;
 
-    private string $baseURl;
-
-    
     public function __construct(
-        array|null $serverParams = null,
+        array $serverParams = $_SERVER,
         public readonly Application $app,
-
+        public readonly Response $res
     ) {
-        $this->serverParams = $serverParams ?? $_SERVER;
-        $this->method = HttpMethod::fromString(strtoupper($this->serverParams['REQUEST_METHOD'] ?? 'GET'));
+        $this->method = HttpMethod::fromString(strtoupper($serverParams['REQUEST_METHOD'] ?? 'GET'));
 
-        $this->protocol = (!empty($this->serverParams['HTTPS']) && $this->serverParams['HTTPS'] !== 'off')
+        $this->protocol = (!empty($serverParams['HTTPS']) && $serverParams['HTTPS'] !== 'off')
             ? 'https'
             : 'http';
 
         $this->secure = $this->protocol === 'https' ? true : false;
 
-        $this->host = $this->serverParams['HTTP_HOST']
-            ?? $this->serverParams['SERVER_NAME']
-            ?? 'localhost';
-
-        $this->port = (int) ($this->serverParams['SERVER_PORT']);
-        if (!$this->port) {
-            $this->port = $this->secure ? 443 : 80;
-        }
-
-        $host = $this->serverParams['HTTP_HOST']
-            ?? $this->serverParams['SERVER_NAME']
-            ?? 'localhost';
+        $this->host = $serverParams['HTTP_HOST'];
 
         $this->hostname = explode(':', $host)[0];
 
-        $this->ip = $this->serverParams['HTTP_X_FORWARDED_FOR']
-            ?? $this->serverParams['REMOTE_ADDR']
-            ?? null;
+        $this->port = (int) ($serverParams['SERVER_PORT']);
 
-        $this->uri = $this->serverParams['REQUEST_URI'] ?? '/';
+        $this->ip = $serverParams['HTTP_X_FORWARDED_FOR'];
+
+        $this->originalUrl = $serverParams['REQUEST_URI'];
+
+        $this->path = $serverParams['PATH_INFO'];
+
+        $this->uri = $serverParams['REQUEST_URI'] ?? '/';
             
-        $this->path = parse_url($this->serverParams['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+        parse_str($serverParams['QUERY_STRING'] ?? '', $this->query);
+        
+        $this->xhr = $serverParams['X-REQUESTED-WITH'] === 'xmlhttprequest';
 
-        $this->contentType = $this->parseContentType();
-        
-        $this->query = $this->parseQuery();
-        
-        $this->headers = $this->parseHeaders();
+        $this->headers = $this->parseHeaders($serverParams);
     }
 
-    // HTTP Method
-    public function uri(): string { 
-        return $this->serverParams['REQUEST_URI'] ?? '/'; 
+    /* ---------- Accepts ---------- */
+
+    public function accepts(string|array $contentType): string|bool|null {
+        // TODO
+    }
+    
+    public function acceptsCharsets(array $charsets): string|bool {
+
+    }
+    
+    public function acceptsEncodings(array $charsets): string|bool {
+
+    }
+    
+    public function acceptsLangauges(array $charsets): string|bool {
+
+    }
+
+    /* ---------- Base URL ---------- */
+
+    public function baseUrl(): string { return $this->baseUrl; }
+
+    /** @internal */
+    public function setBaseUrl(string $baseUrl): void { $this->baseUrl = $baseUrl; }
+
+    /** @internal */
+    public function addToBaseUrl(string $addition): void { $this->baseUrl .=  $addition; }
+
+    /* ---------- Fresh/Stale ---------- */
+
+    public function isFresh(): bool {
+        if ($this->method !== 'GET' && $this->method !== 'HEAD')
+            return false;
+
+        $status = $this->res->statusCode();
+        if (($status >= 200 && $status < 300) || 304 === $status) {
+            return fresh(this.headers, {
+                'etag': res.get('ETag'),
+                'last-modified': res.get('Last-Modified')
+            })
+        }
+
+        return false;
+    }
+
+    public function isStale(): bool {
+        return !$this->isFresh();
     }
 
     /* ---------- Query Parameters ---------- */
-
-    private function parseQuery(): array {
-        parse_str($this->serverParams['QUERY_STRING'] ?? '', $query);
-        return $query;
-    }
 
     public function query(?string $key = null, $default = null) {
         if ($key === null) {
@@ -98,7 +122,7 @@ class Request {
         }
         return $this->query[$key] ?? $default;
     }
-    
+
     /* ---------- Route Parameters (Set by Router) ---------- */
 
     public function params() { return $this->params; }
@@ -107,19 +131,51 @@ class Request {
         return $this->params[$key] ?? $default;
     }
 
+    /** @internal */
     public function setParams(array $params): void {
         $this->params = $params;
     }
 
+    /** @internal */
     public function setParam(string $key, string $val): void {
         $this->params[$key] = $val;
     }
 
+    /* ---------- Route (Set by Router) ---------- */
+
+    public function route() { return $this->route; }
+
+    /** @internal */
+    public function setRoute(Route $route) { $this->route = $route; }
+
     /* ---------- Cookies ---------- */
 
+    // TODO: THIS GOES IN COOKIE PARSER
     public function cookies(): array { return $this->cookies; }
 
     public function signedCookies(): array { return $this->signedCookies; }
+
+    private function parseCookies(string $cookieHeader): void {
+        $pairs = explode(';', $cookieHeader);
+
+        foreach ($pairs as $pair) {
+            [$name, $value] = array_map('trim', explode('=', $pair, 2) + [1 => '']);
+
+            $this->cookies[$name] = $value;
+
+            if (str_contains($value, '.')) {
+                [$val, $sig] = explode('.', $value, 2);
+                if ($this->verifySignature($name, $val, $sig)) {
+                    $this->signedCookies[$name] = $val;
+                }
+            }
+        }
+    }
+
+    private function verifySignature(string $name, string $value, string $signature): bool {
+        $expected = hash_hmac('sha256', $name . '=' . $value, $this->secret);
+        return hash_equals($expected, $signature);
+    }
 
     /* ---------- Body/Input Data ---------- */
     
@@ -140,11 +196,6 @@ class Request {
     public function has(string $key): bool {
         return isset($this->body()[$key]) || isset($this->query[$key]);
     }
-
-    // TODO:
-    // public function is(string|array $val): string {
-
-    // }
 
     public function json(): array {
         if ($this->body === null) {
@@ -178,8 +229,12 @@ class Request {
 
     /* ---------- Headers ---------- */
 
-    public function header(string $name, $default = null): ?string { // TODO: alias with get
+    public function get(string $name, $default = null): ?string { return $this->header($name, $default); }
+    public function header(string $name, $default = null): ?string {
         $name = strtolower($name);
+        if ($name == 'referer' || $name == 'referrer') {
+            return $this->headers['referer'] ?? $this->headers['referrer'];
+        }
         return $this->headers[$name] ?? $default;
     }
 
@@ -189,11 +244,42 @@ class Request {
         return isset($this->headers[strtolower($name)]); 
     }
 
-    public function contentType(): string { return $this->contentType; }
+    private function parseHeaders(array $serverParams): array {
+        $headers = [];
+
+        foreach ($serverParams as $key => $value) {
+            if (str_starts_with($key, 'HTTP_')) {
+                // HTTP_AUTHORIZATION -> authorization
+                $name = strtolower(str_replace('_', '-', substr($key, 5)));
+                $headers[$name] = $value;
+            }
+        }
+
+        // Special cases (these don't have HTTP_ prefix)
+        if (isset($serverParams['CONTENT_TYPE'])) {
+            $headers['content-type'] = $serverParams['CONTENT_TYPE'];
+        }
+        if (isset($serverParams['CONTENT_LENGTH'])) {
+            $headers['content-length'] = $serverParams['CONTENT_LENGTH'];
+        }
+
+        return $headers;
+    }
+
+    /* ---------- Content Type ---------- */
+
+    public function is(string $contentType): string|bool|null { return $this->isContentType($contentType); }
+    public function isContentType(string $contentType): ?bool {
+        if (!isset($this->contentType[$contentType]))
+            return null;
+        // TODO: make this return string when match (includes MIME types)
+        return $this->contentType[$contentType];
+    }
 
     /* ---------- Magic Methods For Attributes ---------- */
 
     /**
+     * Magic methods to allow user to add/edit custom Request object attributes directly 
      * (e.g., $request->user = $user)
      */
 
@@ -225,34 +311,5 @@ class Request {
 
     public function getAttribute(string $key, $default = null) {
         return $this->attributes[$key] ?? $default;
-    }
-
-    /* ---------- Private Helpers ---------- */
-
-    private function parseContentType(): string {
-        $contentType = $this->serverParams['CONTENT_TYPE'] ?? '';
-        return trim(explode(';', $contentType)[0]);
-    }
-
-    private function parseHeaders(): array {
-        $headers = [];
-
-        foreach ($this->serverParams as $key => $value) {
-            if (str_starts_with($key, 'HTTP_')) {
-                // HTTP_AUTHORIZATION -> authorization
-                $name = strtolower(str_replace('_', '-', substr($key, 5)));
-                $headers[$name] = $value;
-            }
-        }
-
-        // Special cases (these don't have HTTP_ prefix)
-        if (isset($this->serverParams['CONTENT_TYPE'])) {
-            $headers['content-type'] = $this->serverParams['CONTENT_TYPE'];
-        }
-        if (isset($this->serverParams['CONTENT_LENGTH'])) {
-            $headers['content-length'] = $this->serverParams['CONTENT_LENGTH'];
-        }
-
-        return $headers;
     }
 }
