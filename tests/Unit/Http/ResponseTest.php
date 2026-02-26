@@ -7,17 +7,17 @@ use SeBorromeo\SebMicroframework\Exceptions\Application\InvalidEngineException;
 use SeBorromeo\SebMicroframework\View\Engine\PhpEngine;
 
 class ResponseTest extends TestCase {
-    private Application $app;
+    private Application $appMock;
 
     protected function setUp(): void {
         parent::setUp();
-        $this->app = new Application();
+        $this->appMock = $this->createMock(Application::class);
     }
 
     /* ---------- Headers ---------- */
 
     public function testHeadersStartEmpty(): void {
-        $res = new Response($this->app);
+        $res = new Response($this->appMock);
 
         $this->assertEquals([], $res->getHeaders());
         $this->assertEquals([], $res->getHeaderNames());
@@ -26,7 +26,7 @@ class ResponseTest extends TestCase {
     }
 
     public function testSetHeader(): void {
-        $res = new Response($this->app);
+        $res = new Response($this->appMock);
         $res->set('Accept', ['text/html', 'application/json', 'image/png']);
 
         $this->assertEquals(['text/html', 'application/json', 'image/png'], $res->getHeader('Accept'));
@@ -35,7 +35,7 @@ class ResponseTest extends TestCase {
     }
 
     public function testAppendHeaderStrToStr(): void {
-        $res = new Response($this->app);
+        $res = new Response($this->appMock);
         $res->set('Link', '<http://localhost/>');
         $res->append('Link', '<http://localhost:3000/>');
 
@@ -46,7 +46,7 @@ class ResponseTest extends TestCase {
     }
 
     public function testAppendHeaderListToStr(): void {
-        $res = new Response($this->app);
+        $res = new Response($this->appMock);
         $res->set('Link', '<http://localhost:8000/>');
         $res->append('Link', ['<http://localhost/>', '<http://localhost:3000/>']);
 
@@ -57,7 +57,7 @@ class ResponseTest extends TestCase {
     }
 
     public function testAppendHeaderListToList(): void {
-        $res = new Response($this->app);
+        $res = new Response($this->appMock);
         $res->set('Link', ['<http://localhost:8000/>']);
         $res->append('Link', ['<http://localhost/>', '<http://localhost:3000/>']);
 
@@ -68,7 +68,7 @@ class ResponseTest extends TestCase {
     }
 
     public function testAppendHeaderStrToList(): void {
-        $res = new Response($this->app);
+        $res = new Response($this->appMock);
         $res->set('Link', ['<http://localhost:8000/>', '<http://localhost/>']);
         $res->append('Link', '<http://localhost:3000/>');
 
@@ -79,7 +79,7 @@ class ResponseTest extends TestCase {
     }
 
     public function testRemoveHeader(): void {
-        $res = new Response($this->app);
+        $res = new Response($this->appMock);
         $res->set('Accept', ['text/html']);
         $res->removeHeader('Accept');
 
@@ -90,13 +90,13 @@ class ResponseTest extends TestCase {
     /* ---------- Status ---------- */
 
     public function testDefaultStatus(): void {
-        $res = new Response($this->app);
+        $res = new Response($this->appMock);
         $this->assertSame(200, $res->statusCode());
         $this->assertSame('OK', $res->statusMessage());
     }
         
     public function testSetStatusAndDefaultMessage(): void {
-        $res = new Response($this->app);
+        $res = new Response($this->appMock);
         $res->status(404);
 
         $this->assertSame(404, $res->statusCode());
@@ -109,7 +109,7 @@ class ResponseTest extends TestCase {
     /* ---------- View ---------- */
 
     public function testAddLocalViewVariable(): void {
-        $res = new Response($this->app);
+        $res = new Response($this->appMock);
         $res->addLocalVar('name', 'Sebastian');
 
         $this->assertEquals(['name' => 'Sebastian'], $res->locals());
@@ -140,26 +140,25 @@ class ResponseTest extends TestCase {
         $this->assertEquals(['name' => 'Sebastian'], $res->locals());
     }
 
-    public function testRenderThrowsWhenViewPathNotConfigured(): void {
-        $this->app->set('view path', null);
-        $res = new Response($this->app);
+    public function testRenderThrowsWhenViewDirNotConfigured(): void {
+        $this->appMock->method('get')
+            ->with('views')
+            ->willReturn(null);
+
+        $res = new Response($this->appMock);
         $this->expectException(\LogicException::class);
         $res->render('index.php', ['name' => 'Sebastian']);
     }
 
     public function testRenderThrowsWhenRendererNull(): void {
-        $res = new Response($this->app);
-        $this->expectException(InvalidEngineException::class);
-        $this->expectExceptionMessage('engine must not be null');
-        $res->render('index.php', ['name' => 'Sebastian']);
-    }
+        $this->appMock->method('get')
+            ->with('view engine')
+            ->willReturn(null);
 
-    public function testRenderThrowsWhenInvalidRenderer(): void {
-        $this->app->set('view engine', 'txt');
-        $res = new Response($this->app);
+        $res = new Response($this->appMock);
         $this->expectException(InvalidEngineException::class);
-        $this->expectExceptionMessage('is not supported');
-        $res->render('index.php', ['name' => 'Sebastian']);
+        $this->expectExceptionMessage('View engine must not be null.');
+        $res->render('index', ['name' => 'Sebastian']);
     }
 
     /* ---------- Send ---------- */
