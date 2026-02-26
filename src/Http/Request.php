@@ -278,12 +278,27 @@ class Request {
 
     /* ---------- Content Type ---------- */
 
-    public function is(string $contentType): string|bool|null { return $this->isContentType($contentType); }
-    public function isContentType(string $contentType): ?bool {
-        if (!isset($this->contentType[$contentType]))
-            return null;
-        // TODO: make this return string when match (includes MIME types)
-        return $this->contentType[$contentType];
+    public function is(string|array $contentType): string|bool|null { return $this->isContentType($contentType); }
+    public function isContentType(string|array $contentType): ?bool {
+        $header = $this->header('content-type');
+        if (!$header) 
+            return false;
+
+        $actual = strtolower(trim(explode(';', $header)[0]));
+        [$actualType, $actualSubtype] = explode('/', $actual);
+        
+        $contentTypes = (array) $contentType;
+        foreach ($contentTypes as $c) {
+            if (!is_string($c))
+                throw new \InvalidArgumentException('Content type must be a string.');
+
+            $type = strtolower(trim($c));
+
+            if ($type === $actual || $type === $actualSubtype || $type === $actualType . '/*')
+                return $type;
+        }
+
+        return false;
     }
 
     /* ---------- Magic Methods For Attributes ---------- */

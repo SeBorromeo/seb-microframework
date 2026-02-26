@@ -2,6 +2,7 @@
 
 use PHPUnit\Framework\TestCase;
 use SeBorromeo\SebMicroframework\Application;
+use SeBorromeo\SebMicroframework\Http\HttpMethod;
 use SeBorromeo\SebMicroframework\Http\Request;
 use SeBorromeo\SebMicroframework\Http\Response;
 
@@ -17,10 +18,47 @@ class RequestTest extends TestCase {
         $this->defaultRequestMeta = [
             'REQUEST_METHOD' => 'GET',
             'REQUEST_URI' => '/path',
-            'HTTP_HOST' => 'localhost',
             'SERVER_PORT' => '8000',
-            'PATH_INFO' => '/path'
+            'PATH_INFO' => '/path',
+            'HTTP_HOST' => 'localhost', // Required in HTTP/1.1 
         ];
+    }
+
+    public function testConstructor(): void {
+        $req = new Request($this->app, $this->res, $this->defaultRequestMeta);
+
+        $this->assertEquals(HttpMethod::GET, $req->method);
+        $this->assertEquals('/path', $req->uri);
+        $this->assertEquals(8000, $req->port());
+        $this->assertEquals('/path', $req->path());
+        $this->assertEquals('localhost', $req->host);
+    }
+
+    public function testMissingMetaData(): void {
+        $this->expectException(\InvalidArgumentException::class);
+        new Request($this->app, $this->res, []);
+    }
+
+    public function testIsContentType(): void {
+        $this->defaultRequestMeta['CONTENT_TYPE'] = 'text/html; charset=utf-8';
+        $req = new Request($this->app, $this->res, $this->defaultRequestMeta);
+
+        $this->assertEquals('html', $req->is('html'));
+        $this->assertEquals('text/html', $req->is('text/html'));
+        $this->assertEquals('text/*', $req->is('text/*'));
+        
+        $this->defaultRequestMeta['CONTENT_TYPE'] = 'application/json';
+        $req = new Request($this->app, $this->res, $this->defaultRequestMeta);
+        
+        $this->assertEquals('json', $req->is('json'));
+        $this->assertEquals('application/json', $req->is('application/json'));
+        $this->assertEquals('application/*', $req->is('application/*'));
+
+        $this->assertEquals('json', $req->is(['json', 'html']));
+        $this->assertFalse($req->is('html'));
+
+        $this->expectException(\InvalidArgumentException::class);
+        $req->is([1, 2]);
     }
 
     public function testMagicProperties(): void {
