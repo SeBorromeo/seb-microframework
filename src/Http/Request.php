@@ -5,9 +5,9 @@ use SeBorromeo\SebMicroframework\Routing\Route;
 
 class Request {
     private ?array $body = null;
-    private array $params; // Done
+    private array $headers; 
+    private array $params = [];
     private array $query = [];
-    private array $headers; // Done
     private array $attributes = [];
 
     private array $cookies = []; // Write parse cookies
@@ -20,10 +20,11 @@ class Request {
     private string $url;
     private string $path;
     private string $baseUrl = '/';
-    
+    private int $port;
+
     public readonly HttpMethod $method;
-    public readonly string $originalUrl;
     public readonly string $uri;
+    public readonly string $originalUrl;
     public readonly string $host;
     public readonly string $hostname;
     public readonly string $protocol;
@@ -51,24 +52,20 @@ class Request {
         $this->originalUrl = $this->uri;
         $this->url = $this->uri;
 
+        $this->path = $requireMeta('PATH_INFO');
+
         $this->host = $requireMeta('HTTP_HOST');
+        $this->hostname = explode(':', $this->host)[0];
 
         $this->port = (int) ($requireMeta('SERVER_PORT'));
 
-        // Protocol
         $this->protocol = (!empty($requestMeta['HTTPS']) && $requestMeta['HTTPS'] !== 'off')
             ? 'https'
             : 'http';
 
         $this->secure = $this->protocol === 'https' ? true : false;
 
-        if ($this->host) {
-            $this->hostname = explode(':', $this->host)[0];
-        }
-
         $this->ip = $requestMeta['HTTP_X_FORWARDED_FOR'];
-
-        $this->path = $requireMeta('PATH_INFO');
 
         parse_str($requestMeta['QUERY_STRING'] ?? '', $this->query);
         
@@ -129,19 +126,19 @@ class Request {
 
     /* ---------- Query Parameters ---------- */
 
-    public function query(?string $key = null, $default = null) {
+    public function query(?string $key = null) {
         if ($key === null) {
             return $this->query;
         }
-        return $this->query[$key] ?? $default;
+        return $this->query[$key];
     }
 
     /* ---------- Route Parameters (Set by Router) ---------- */
 
     public function params() { return $this->params; }
 
-    public function param(string $key, $default = null) {
-        return $this->params[$key] ?? $default;
+    public function param(string $key) {
+        return $this->params[$key];
     }
 
     /** @internal */
@@ -192,14 +189,14 @@ class Request {
 
     /* ---------- Body/Input Data ---------- */
     
-    public function input(?string $key = null, $default = null) {
+    public function input(?string $key = null) {
         $body = $this->body();
 
         if ($key === null) {
             return $body;
         }
 
-        return $body[$key] ?? $default;
+        return $body[$key];
     }
 
     public function all(): array {
@@ -242,13 +239,13 @@ class Request {
 
     /* ---------- Headers ---------- */
 
-    public function get(string $name, $default = null): ?string { return $this->header($name, $default); }
-    public function header(string $name, $default = null): ?string {
+    public function get(string $name): ?string { return $this->header($name); }
+    public function header(string $name): ?string {
         $name = strtolower($name);
         if ($name == 'referer' || $name == 'referrer') {
             return $this->headers['referer'] ?? $this->headers['referrer'];
         }
-        return $this->headers[$name] ?? $default;
+        return $this->headers[$name];
     }
 
     public function headers(): array { return $this->headers; }
@@ -257,10 +254,10 @@ class Request {
         return isset($this->headers[strtolower($name)]); 
     }
 
-    private function parseHeaders(array $serverParams): array {
+    private function parseHeaders(array $requestMeta): array {
         $headers = [];
 
-        foreach ($serverParams as $key => $value) {
+        foreach ($requestMeta as $key => $value) {
             if (str_starts_with($key, 'HTTP_')) {
                 // HTTP_AUTHORIZATION -> authorization
                 $name = strtolower(str_replace('_', '-', substr($key, 5)));
@@ -269,11 +266,11 @@ class Request {
         }
 
         // Special cases (these don't have HTTP_ prefix)
-        if (isset($serverParams['CONTENT_TYPE'])) {
-            $headers['content-type'] = $serverParams['CONTENT_TYPE'];
+        if (isset($requestMeta['CONTENT_TYPE'])) {
+            $headers['content-type'] = $requestMeta['CONTENT_TYPE'];
         }
-        if (isset($serverParams['CONTENT_LENGTH'])) {
-            $headers['content-length'] = $serverParams['CONTENT_LENGTH'];
+        if (isset($requestMeta['CONTENT_LENGTH'])) {
+            $headers['content-length'] = $requestMeta['CONTENT_LENGTH'];
         }
 
         return $headers;
@@ -292,7 +289,7 @@ class Request {
     /* ---------- Magic Methods For Attributes ---------- */
 
     /**
-     * Magic methods to allow user to add/edit custom Request object attributes directly 
+     * Magic methods to allow user to add/edit custom Request object attributes directly.
      * (e.g., $request->user = $user)
      */
 
@@ -322,7 +319,7 @@ class Request {
         $this->attributes[$key] = $value;
     }
 
-    public function getAttribute(string $key, $default = null) {
-        return $this->attributes[$key] ?? $default;
+    public function getAttribute(string $key) {
+        return $this->attributes[$key];
     }
 }
