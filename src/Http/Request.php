@@ -103,6 +103,33 @@ class Request {
     /** @internal */
     public function addToBaseUrl(string $addition): void { $this->baseUrl .=  $addition; }
 
+    /* ---------- URL ---------- */
+
+    public function url(): string { return $this->url; }
+
+    /**
+     * Rewrite url for routing purposes (original stored in readonly property ->originalUrl).
+     * 
+     * @internal
+    */
+    public function setUrl(string $url): void { $this->url = $url; }
+
+    /* ---------- Path ---------- */
+
+    public function path(): string { return $this->path; }
+
+    /**
+     * Rewrite path for routing purposes.
+     * 
+     * @internal
+    */
+    public function setPath(string $path): void { $this->path = $path; }
+
+    /* ---------- Port ---------- */
+
+    /** @internal */
+    public function port() { return $this->port; }
+
     /* ---------- Fresh/Stale ---------- */
 
     public function isFresh(): bool {
