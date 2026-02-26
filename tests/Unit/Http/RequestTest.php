@@ -13,8 +13,8 @@ class RequestTest extends TestCase {
 
     protected function setUp(): void {
         parent::setUp();
-        $this->app = new Application();
-        $this->res = new Response($this->app);
+        $this->app = $this->createMock(Application::class);
+        $this->res = $this->createMock(Response::class);
         $this->defaultRequestMeta = [
             'REQUEST_METHOD' => 'GET',
             'REQUEST_URI' => '/path',
@@ -25,7 +25,7 @@ class RequestTest extends TestCase {
     }
 
     public function testConstructor(): void {
-        $req = new Request($this->app, $this->res, $this->defaultRequestMeta);
+        $req = new Request($this->app, $this->defaultRequestMeta);
 
         $this->assertEquals(HttpMethod::GET, $req->method);
         $this->assertEquals('/path', $req->uri);
@@ -36,19 +36,19 @@ class RequestTest extends TestCase {
 
     public function testMissingMetaData(): void {
         $this->expectException(\InvalidArgumentException::class);
-        new Request($this->app, $this->res, []);
+        new Request($this->app, []);
     }
 
     public function testIsContentType(): void {
         $this->defaultRequestMeta['CONTENT_TYPE'] = 'text/html; charset=utf-8';
-        $req = new Request($this->app, $this->res, $this->defaultRequestMeta);
+        $req = new Request($this->app, $this->defaultRequestMeta);
 
         $this->assertEquals('html', $req->is('html'));
         $this->assertEquals('text/html', $req->is('text/html'));
         $this->assertEquals('text/*', $req->is('text/*'));
         
         $this->defaultRequestMeta['CONTENT_TYPE'] = 'application/json';
-        $req = new Request($this->app, $this->res, $this->defaultRequestMeta);
+        $req = new Request($this->app, $this->defaultRequestMeta);
         
         $this->assertEquals('json', $req->is('json'));
         $this->assertEquals('application/json', $req->is('application/json'));
@@ -62,7 +62,7 @@ class RequestTest extends TestCase {
     }
 
     public function testMagicProperties(): void {
-        $req = new Request($this->app, $this->res, $this->defaultRequestMeta);
+        $req = new Request($this->app, $this->defaultRequestMeta);
 
         $req->userId = 1;
         $this->assertSame(1, $req->userId);
@@ -81,7 +81,7 @@ class RequestTest extends TestCase {
     public function testQueryParsing(): void {
         $this->defaultRequestMeta['QUERY_STRING'] = 'q=solar&page=2&sort=asc';
 
-        $req = new Request($this->app, $this->res, $this->defaultRequestMeta);
+        $req = new Request($this->app, $this->defaultRequestMeta);
 
         $this->assertSame([
             'q' => 'solar',
@@ -94,7 +94,7 @@ class RequestTest extends TestCase {
         $this->defaultRequestMeta['HTTP_X_CUSTOM_HEADER'] = 'custom-value';
         $this->defaultRequestMeta['CONTENT_TYPE'] = 'application/json';
 
-        $req = new Request($this->app, $this->res, $this->defaultRequestMeta);
+        $req = new Request($this->app, $this->defaultRequestMeta);
 
         $this->assertSame('custom-value', $req->header('X-CUSTOM-HEADER'));
         $this->assertSame('custom-value', $req->header('x-custom-header'));

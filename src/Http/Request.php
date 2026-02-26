@@ -10,7 +10,7 @@ class Request {
     private array $query = [];
     private array $attributes = [];
 
-    private array $cookies = []; // Write parse cookies
+    private array $cookies = []; // Write cookieparser
     private array $signedCookies = [];
 
     private array $ips; // TODO
@@ -22,6 +22,7 @@ class Request {
     private string $baseUrl = '/';
     private int $port;
 
+    public readonly Response $res;
     public readonly HttpMethod $method;
     public readonly string $uri;
     public readonly string $originalUrl;
@@ -34,7 +35,6 @@ class Request {
 
     public function __construct(
         public readonly Application $app,
-        public readonly Response $res,
         array $requestMeta
     ) {
         $requireMeta = function(string $key) use ($requestMeta): mixed {
@@ -73,6 +73,8 @@ class Request {
 
         $this->headers = $this->parseHeaders($requestMeta);
     }
+
+    public function setResponse(Response $res): void { $this->res = $res; }
 
     /* ---------- Accepts ---------- */
 
