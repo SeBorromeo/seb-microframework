@@ -6,7 +6,7 @@ use SeBorromeo\SebMicroframework\Routing\Route;
 class Request {
     private ?array $body = null;
     private array $params; // Done
-    private array $query; // Done
+    private array $query = [];
     private array $headers; // Done
     private array $attributes = [];
 
@@ -26,61 +26,74 @@ class Request {
     public readonly string $uri;
     public readonly string $host;
     public readonly string $hostname;
-    public readonly ?string $ip;
     public readonly string $protocol;
     public readonly bool $secure;
     public readonly bool $xhr;
+    public readonly ?string $ip;
 
     public function __construct(
-        array $serverParams = $_SERVER,
         public readonly Application $app,
-        public readonly Response $res
+        public readonly Response $res,
+        array $requestMeta
     ) {
-        $this->method = HttpMethod::fromString(strtoupper($serverParams['REQUEST_METHOD'] ?? 'GET'));
+        $requireMeta = function(string $key) use ($requestMeta): mixed {
+            if (!isset($requestMeta[$key])) 
+                throw new \InvalidArgumentException("Missing required Request parameter: {$key}");
 
-        $this->protocol = (!empty($serverParams['HTTPS']) && $serverParams['HTTPS'] !== 'off')
+            return $requestMeta[$key];
+        };
+
+        $this->method = HttpMethod::fromString(
+            strtoupper($requireMeta('REQUEST_METHOD'))
+        );
+
+        $this->uri = $requireMeta('REQUEST_URI');
+        $this->originalUrl = $this->uri;
+        $this->url = $this->uri;
+
+        $this->host = $requireMeta('HTTP_HOST');
+
+        $this->port = (int) ($requireMeta('SERVER_PORT'));
+
+        // Protocol
+        $this->protocol = (!empty($requestMeta['HTTPS']) && $requestMeta['HTTPS'] !== 'off')
             ? 'https'
             : 'http';
 
         $this->secure = $this->protocol === 'https' ? true : false;
 
-        $this->host = $serverParams['HTTP_HOST'];
+        if ($this->host) {
+            $this->hostname = explode(':', $this->host)[0];
+        }
 
-        $this->hostname = explode(':', $host)[0];
+        $this->ip = $requestMeta['HTTP_X_FORWARDED_FOR'];
 
-        $this->port = (int) ($serverParams['SERVER_PORT']);
+        $this->path = $requireMeta('PATH_INFO');
 
-        $this->ip = $serverParams['HTTP_X_FORWARDED_FOR'];
-
-        $this->originalUrl = $serverParams['REQUEST_URI'];
-
-        $this->path = $serverParams['PATH_INFO'];
-
-        $this->uri = $serverParams['REQUEST_URI'] ?? '/';
-            
-        parse_str($serverParams['QUERY_STRING'] ?? '', $this->query);
+        parse_str($requestMeta['QUERY_STRING'] ?? '', $this->query);
         
-        $this->xhr = $serverParams['X-REQUESTED-WITH'] === 'xmlhttprequest';
+        $this->xhr = $requestMeta['X-REQUESTED-WITH'] === 'xmlhttprequest';
 
-        $this->headers = $this->parseHeaders($serverParams);
+        $this->headers = $this->parseHeaders($requestMeta);
     }
 
     /* ---------- Accepts ---------- */
 
     public function accepts(string|array $contentType): string|bool|null {
         // TODO
+        return null;
     }
     
     public function acceptsCharsets(array $charsets): string|bool {
-
+        return '';
     }
     
     public function acceptsEncodings(array $charsets): string|bool {
-
+        return '';
     }
     
     public function acceptsLangauges(array $charsets): string|bool {
-
+        return '';
     }
 
     /* ---------- Base URL ---------- */
