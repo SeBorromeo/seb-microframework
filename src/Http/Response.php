@@ -70,14 +70,14 @@ class Response {
         unset($this->headers[strtolower($name)]);
     }
         
-    public function set(string|array $nameOrArray, string|array|null $value = null): void { $this->header($nameOrArray, $value); }
-    public function header(string|array $nameOrArray, string|array|null $value = null): void {
+    public function set(string|array $nameOrArray, string|array|null $value = null): void { $this->setHeader($nameOrArray, $value); }
+    public function setHeader(string|array $nameOrArray, string|array|null $value = null): void {
         if ($this->headersSent)
             throw new HeadersAlreadySentException();
 
         if (is_array($nameOrArray)) {
             foreach ($nameOrArray as $h => $v) {
-                $this->headers[$h] = $v;
+                $this->headers[strtolower($h)] = $v;
             } 
         } else {
             $name = strtolower($nameOrArray);
