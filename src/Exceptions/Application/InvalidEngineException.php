@@ -3,7 +3,7 @@
 class InvalidEngineException extends \LogicException
 {
     public function __construct(
-        string|null $engine,
+        ?string $engine = null,
         int $code = 0,
         ?\Throwable $previous = null
     ) {

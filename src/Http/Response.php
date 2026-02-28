@@ -4,48 +4,51 @@ use SeBorromeo\SebMicroframework\Application;
 use SeBorromeo\SebMicroframework\Exceptions\Http\ResponseAlreadySentException;
 use SeBorromeo\SebMicroframework\Exceptions\Http\HeadersAlreadySentException;
 use SeBorromeo\SebMicroframework\Exceptions\View\ViewNotFoundException;
+use SeBorromeo\SebMicroframework\Exceptions\Application\InvalidEngineException;
+
+const DEFAULT_RESPONSE_STATUS_TEXTS = [
+    // 1xx Informational
+    100 => 'Continue',
+    101 => 'Switching Protocols',
+    // 2xx Success
+    200 => 'OK',
+    201 => 'Created',
+    202 => 'Accepted',
+    204 => 'No Content',
+    // 3xx Redirection
+    301 => 'Moved Permanently',
+    302 => 'Found',
+    304 => 'Not Modified',
+    // 4xx Client Error
+    400 => 'Bad Request',
+    401 => 'Unauthorized',
+    403 => 'Forbidden',
+    404 => 'Not Found',
+    405 => 'Method Not Allowed',
+    // 5xx Server Error
+    500 => 'Internal Server Error',
+    501 => 'Not Implemented',
+    502 => 'Bad Gateway',
+    503 => 'Service Unavailable',
+];
 
 class Response {
     private array $locals = [];
-    
     private array $headers = [];
+
     private bool $headersSent = False;
     private bool $ended = False;
     private int $statusCode = 200;
     public string $statusMessage = 'OK';
     private string $body = "";
 
-    private static array $statusTexts = [
-        // 1xx Informational
-        100 => 'Continue',
-        101 => 'Switching Protocols',
-        // 2xx Success
-        200 => 'OK',
-        201 => 'Created',
-        202 => 'Accepted',
-        204 => 'No Content',
-        // 3xx Redirection
-        301 => 'Moved Permanently',
-        302 => 'Found',
-        304 => 'Not Modified',
-        // 4xx Client Error
-        400 => 'Bad Request',
-        401 => 'Unauthorized',
-        403 => 'Forbidden',
-        404 => 'Not Found',
-        405 => 'Method Not Allowed',
-        // 5xx Server Error
-        500 => 'Internal Server Error',
-        501 => 'Not Implemented',
-        502 => 'Bad Gateway',
-        503 => 'Service Unavailable',
-    ];
+    public readonly Request $req;
 
     public function __construct(
-        private Application $app
+        public readonly Application $app
     ) {}
 
-    public function app(): Application { return $this->app; }
+    public function setRequest(Request $req): void { $this->req = $req; }
 
     /* ---------- Headers ---------- */
     
@@ -53,13 +56,13 @@ class Response {
     public function getHeader(string $name): string|array|null {
         return $this->headers[strtolower($name)];
     }
-        
-    public function getHeaderNames(): array {
-        return array_keys($this->headers);
-    }
     
     public function getHeaders(): array {
         return $this->headers;
+    }
+        
+    public function getHeaderNames(): array {
+        return array_keys($this->headers);
     }
     
     public function hasHeader($name): bool {
@@ -85,6 +88,7 @@ class Response {
         }
     }
 
+    // TODO: Reconsider this and decide how multiple headers are stored
     public function append(string $name, string|array $value): void {
         if ($this->headersSent)
             throw new HeadersAlreadySentException();   
@@ -102,15 +106,78 @@ class Response {
 
     public function headersSent(): bool { return $this->headersSent; }
 
-    /* ---------- Header Shorthands ---------- */
+    /* ---------- Header Helpers ---------- */
 
-    // TODO: attachment, format, links, location, type, vary
+    public function attachment(?string $filename = null): void {
+        if ($filename) {
+            $filename = basename($filename);
+            $this->set('Content-Disposition', "attachment; filename=\"$filename\"");
+            $this->type(pathinfo($filename, PATHINFO_EXTENSION));
+        } else {
+            $this->set('Content-Disposition', 'attachment');
+        }
+    }
+
+    public function format(array $callbacks): void {
+        foreach ($callbacks as $type => $callback) {
+            if ($this->req->accepts($type)) {
+                $this->type($type);
+                $callback();
+                return;
+            }
+        }
+        $this->status(406)->send();
+    }
+
+    /**
+     * Joins param $links to Link header field.
+     * 
+     * @param array<string, string> $links
+     *   - (e.g., ['next' => 'http://api.example.com/users?page=2'])
+     */
+    public function links(array $links): void {
+        $linkHeader = '';
+        foreach ($links as $rel => $url) {
+            $linkHeader .= ($linkHeader ? ', ' : '') . "<$url>; rel=\"$rel\"";
+        }
+        $this->append('Link', $linkHeader);
+    }
+
+    /**
+     * Sets Location header.
+     */
+    public function location(string $path): void {
+        $this->set('Location', $path);
+    }
+
+    /**
+     * Sets Content-Type header. If $type contains "/" character, sets header to exactly $type, otherwise infers MIME type.  
+     */
+    public function contentType(string $type): void { $this->type($type); }
+    public function type(string $type): void {
+        $mimeType = str_contains($type, '/') ? $type : (mime_content_type("dummy.$type") ?: 'application/octet-stream');
+        $this->set('Content-Type', $mimeType);
+    }
+
+    /**
+     * Adds $field to Vary header if not there already.
+     */
+    public function vary(string $field): Response {
+        $vary = $this->getHeader('Vary');
+        $fields = $vary ? array_map('trim', explode(',', $vary)) : [];
+        if (!in_array($field, $fields)) {
+            $fields[] = $field;
+            $this->set('Vary', implode(', ', $fields));
+        }
+        return $this;
+    }
+
 
     /* ---------- Status ---------- */
 
     public function status(int $code): Response {
         $this->statusCode = $code;
-        $this->statusMessage = self::$statusTexts[$code] ?? '';
+        $this->statusMessage = DEFAULT_RESPONSE_STATUS_TEXTS[$code] ?? '';
         return $this;
     }
 
@@ -139,7 +206,7 @@ class Response {
         }
 
         $ext = $this->getExtension($view);
-
+        
         $engine = $this->app->getEngine($ext);
 
         $path = $this->resolvePath($view, $ext);
@@ -153,18 +220,18 @@ class Response {
             $this->send($html);
     }
 
-    protected function getExtension(string $view): string {
+    private function getExtension(string $view): string {
         if (str_contains($view, '.')) 
             return pathinfo($view, PATHINFO_EXTENSION);
 
         $viewEngine = $this->app->get('view engine');
         if (!$viewEngine)
-            throw new \LogicException("No view engine defined. Set using \$app->set('view engine', {engine}).");
+            throw new InvalidEngineException();
 
         return $viewEngine;
     }
 
-    protected function resolvePath(string $view, string $ext): string {
+    private function resolvePath(string $view, string $ext): string {
         $viewsDir = rtrim($this->app->get('views'), '/');
 
         if (!$viewsDir)
@@ -201,7 +268,7 @@ class Response {
         if ($body !== null) {
             if (!$this->hasHeader('Content-Type')) {
                 $this->set('Content-Type', $this->inferContentType($body));
-                $this->setCharset();
+                $this->setCharsetUTF8();
             }
 
             $this->body = $this->normalizeBody($body);
@@ -216,7 +283,7 @@ class Response {
 
     public function json(array|string|bool|int|null $data): Response {
         $this->body = json_encode($data);
-        $this->header('Content-Type', 'application/json');
+        $this->setHeader('Content-Type', 'application/json');
         return $this->send();
     }
 
@@ -254,8 +321,8 @@ class Response {
     private function inferContentType(array|string|object|bool $body) {
         return match (true) {
             is_array($body), is_object($body) => 'application/json',
-            is_bool($body)                   => 'text/plain',
-            is_string($body)                 => 'text/plain',
+            is_bool($body)                    => 'text/plain',
+            is_string($body)                  => 'text/plain',
             default                           => 'application/octet-stream',
         };
     }
@@ -272,12 +339,12 @@ class Response {
         return (string) $body;
     }
 
-    private function setCharset(): void {
+    private function setCharsetUTF8(): void {
         if (!$this->hasHeader('Content-Type')) return;
 
         $contentType = $this->getHeader('Content-Type');
 
-        if (str_starts_with($contentType, 'text/') || $contentType === 'application/json') {
+        if (is_string($contentType) && (str_starts_with($contentType, 'text/') || $contentType === 'application/json')) {
             if (!str_contains($contentType, 'charset=')) {
                 $this->set('Content-Type', $contentType . '; charset=utf-8');
             }

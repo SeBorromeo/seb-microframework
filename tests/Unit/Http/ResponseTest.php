@@ -21,8 +21,8 @@ class ResponseTest extends TestCase {
 
         $this->assertEquals([], $res->getHeaders());
         $this->assertEquals([], $res->getHeaderNames());
-        $this->assertNull($res->getHeader('Accept'));
-        $this->assertFalse($res->hasHeader('Accept'));
+        $this->assertNull($res->getHeader('Content-Type'));
+        $this->assertFalse($res->hasHeader('Content-Type'));
     }
 
     public function testSetHeader(): void {
