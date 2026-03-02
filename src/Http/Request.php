@@ -139,11 +139,29 @@ class Request {
             return false;
 
         $status = $this->res->statusCode();
-        if (($status >= 200 && $status < 300) || 304 === $status) {
-            return fresh(this.headers, {
-                'etag': res.get('ETag'),
-                'last-modified': res.get('Last-Modified')
-            })
+        if (!(($status >= 200 && $status < 300) || $status === 304)) 
+            return false;
+
+        $ifNoneMatch = $this->getHeader('if-none-match');
+        $ifModifiedSince = $this->getHeader('if-modified-since');
+
+        $etag = $this->res->getHeader('ETag');
+        $lastModified = $this->res->getHeader('Last-Modified');
+
+        if ($etag && $ifNoneMatch) {
+            $etags = array_map('trim', explode(',', $ifNoneMatch));
+            if (in_array($etag, $etags) || in_array('*', $etags)) {
+                return true;
+            }
+        }
+
+        if ($lastModified && $ifModifiedSince) {
+            $lastModifiedTime = strtotime($lastModified);
+            $ifModifiedSinceTime = strtotime($ifModifiedSince);
+
+            if ($lastModifiedTime <= $ifModifiedSinceTime) {
+                return true;
+            }
         }
 
         return false;
@@ -268,8 +286,8 @@ class Request {
 
     /* ---------- Headers ---------- */
 
-    public function get(string $name): ?string { return $this->header($name); }
-    public function header(string $name): ?string {
+    public function get(string $name): ?string { return $this->getHeader($name); }
+    public function getHeader(string $name): ?string {
         $name = strtolower($name);
         if ($name == 'referer' || $name == 'referrer') {
             return $this->headers['referer'] ?? $this->headers['referrer'];
@@ -309,7 +327,7 @@ class Request {
 
     public function is(string|array $contentType): string|bool|null { return $this->isContentType($contentType); }
     public function isContentType(string|array $contentType): ?bool {
-        $header = $this->header('content-type');
+        $header = $this->getHeader('content-type');
         if (!$header) 
             return false;
 
