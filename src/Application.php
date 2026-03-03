@@ -1,6 +1,8 @@
 <?php namespace SeBorromeo\SebMicroframework;
 
 use SeBorromeo\SebMicroframework\Exceptions\Application\InvalidEngineException;
+use SeBorromeo\SebMicroframework\Http\Request;
+use SeBorromeo\SebMicroframework\Http\Response;
 use SeBorromeo\SebMicroframework\Routing\Router;
 use SeBorromeo\SebMicroframework\View\Engine\EngineInterface;
 use SeBorromeo\SebMicroframework\View\Engine\PhpEngine;
@@ -8,31 +10,55 @@ use SeBorromeo\SebMicroframework\View\Engine\PugEngine;
 
 class Application {
     private array $locals = [];
-    private array $settings = [
-        'env' => 'development',
-        'etag' => 'weak',
-        'jsonp callback name' => 'callback',
-        'query parser' => 'simple',
-        'subdomain offset' => 2,
-        'trust proxy' => false,
-        'x-powered-by' => true
-    ];
+    private array $settings = [];
+
+    private string $mountPath = '/';
 
     private array $viewEngines;
     private array $viewEngineInstances = [];
 
-    public function __construct() {
-        $appEnv = getenv('APP_ENV'); 
-        $this->set('env', $appEnv ?: 'development');
-        if ($appEnv == 'production')
-            $this->set('view cache', true);
+    private array $middleware = [];
+    private array $routes = [];
+    
+    private ?Router $router = null;
+    public readonly Request $req;
+    public readonly Response $res;
 
-        $this->set('views', getcwd() . '/views');
+    public function __construct() {
+        $this->defaultConfig();
 
         $this->viewEngines = [
             'pug' => PugEngine::class,
             'php' => PhpEngine::class,
         ];
+
+        $this->req = new Request($this, $_SERVER);
+        $this->res = new Response($this);
+    }
+
+    private function defaultConfig(): void {
+        $this->settings['etag'] = 'weak';
+        $this->settings['jsonp callback name'] = 'callback';
+        $this->settings['query parser'] = 'simple';
+        $this->settings['subdomain offset'] = 2;
+        $this->settings['trust proxy'] = false;
+        $this->settings['x-powered-by'] = true;
+
+        $appEnv = getenv('APP_ENV'); 
+        $this->settings['env'] = $appEnv ?: 'development';
+        if ($appEnv == 'production') {
+            $this->set('view cache', true);
+        }
+
+        $this->set('views', getcwd() . '/views');
+    }
+
+    /**
+     * Magic method to turn Application into a callable.
+     */
+    public function __invoke(Request $request, Response $response, callable $next): void {
+        $this->handle($request, $response, $next);
+    }
     }
 
     /* ---------- Settings ---------- */
@@ -102,5 +128,15 @@ class Application {
         }
         
         return $this->viewEngineInstances[$ext];
+    }
+
+    /* ---------- Routing ---------- */
+
+    public function router(): Router {
+        if ($this->router === null) {
+            $this->router = new Router();
+        }
+
+        return $this->router;
     }
 }
