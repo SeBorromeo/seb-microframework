@@ -63,7 +63,7 @@ class Route {
             $method = HttpMethod::GET;
         }
 
-        $req->route = $this;
+        $req->setRoute($this);
 
         $next = function(\Throwable|string|null $err = null) use (&$idx, &$sync, $stack, $method, $req, $res, $done, &$next) {
             // signal to exit route
