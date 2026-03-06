@@ -155,7 +155,9 @@ class Response {
      */
     public function contentType(string $type): void { $this->type($type); }
     public function type(string $type): void {
-        $mimeType = str_contains($type, '/') ? $type : (mime_content_type("dummy.$type") ?: 'application/octet-stream');
+        $mimes = new \Mimey\MimeTypes;
+
+        $mimeType = str_contains($type, '/') ? $type : ($mimes->getMimeType($type) ?: 'application/octet-stream');
         $this->set('Content-Type', $mimeType);
     }
 
