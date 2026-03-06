@@ -96,10 +96,10 @@ class RequestTest extends TestCase {
 
         $req = new Request($this->app, $this->defaultRequestMeta);
 
-        $this->assertSame('custom-value', $req->header('X-CUSTOM-HEADER'));
-        $this->assertSame('custom-value', $req->header('x-custom-header'));
-        $this->assertSame('application/json', $req->header('Content-Type'));
-        $this->assertNull($req->header('Non-Existent'));
+        $this->assertSame('custom-value', $req->getHeader('X-CUSTOM-HEADER'));
+        $this->assertSame('custom-value', $req->getHeader('x-custom-header'));
+        $this->assertSame('application/json', $req->getHeader('Content-Type'));
+        $this->assertNull($req->getHeader('Non-Existent'));
 
         $this->assertEquals([
             'x-custom-header' => 'custom-value', 
