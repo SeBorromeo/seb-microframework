@@ -87,6 +87,64 @@ class ResponseTest extends TestCase {
         $this->assertNotContains('Accept', $res->getHeaderNames());
     }
 
+    /* ---------- Header Helpers ---------- */
+
+    public function testAttachment(): void {
+        $res = new Response($this->appMock);
+
+        $res->attachment('file.txt');
+
+        $this->assertEquals('attachment; filename="file.txt"', $res->getHeader('Content-Disposition'));
+        $this->assertEquals('text/plain', $res->getHeader('Content-Type'));
+    }
+
+    public function testFormat(): void {
+    
+    }
+
+    public function testLinks(): void {
+        $res = new Response($this->appMock);
+
+        $res->links([
+            'next' => 'http://api.example.com/users?page=2',
+            'prev' => 'http://api.example.com/users?page=1',
+        ]);
+
+        $this->assertEquals([
+            '<http://api.example.com/users?page=2>; rel="next"',
+            '<http://api.example.com/users?page=1>; rel="prev"',
+        ], $res->getHeader('Link'));
+    }
+
+    public function testLocation(): void {
+        $res = new Response($this->appMock);
+        
+        $res->location('/login');
+
+        $this->assertEquals('/login', $res->getHeader('Location'));
+    }
+
+    public function testType(): void {
+        $res = new Response($this->appMock);
+
+        $res->type('json');
+        $this->assertEquals('application/json', $res->getHeader('Content-Type'));
+        
+        $res->type('text/plain');
+        $this->assertEquals('text/plain', $res->getHeader('Content-Type'));
+    }
+
+    public function testVaryDuplicateValue(): void {
+        $res = new Response($this->appMock);
+
+        $res->vary('Accept-Encoding');
+        $res->vary('Accept-Encoding');
+
+        var_dump($res->getHeader('Vary'));
+
+        $this->assertEquals('Accept-Encoding', $res->getHeader('Vary'));
+    }
+
     /* ---------- Status ---------- */
 
     public function testDefaultStatus(): void {

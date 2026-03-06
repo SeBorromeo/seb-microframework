@@ -88,7 +88,6 @@ class Response {
         }
     }
 
-    // TODO: Reconsider this and decide how multiple headers are stored
     public function append(string $name, string|array $value): void {
         if ($this->headersSent)
             throw new HeadersAlreadySentException();   
@@ -108,6 +107,9 @@ class Response {
 
     /* ---------- Header Helpers ---------- */
 
+    /**
+     * Sets Content-Disposition header field to "attachment". Optional filename can be given, in which content type set based on extension and sets Content-Disposition param "filename=".
+     */
     public function attachment(?string $filename = null): void {
         if ($filename) {
             $filename = basename($filename);
@@ -118,6 +120,9 @@ class Response {
         }
     }
 
+    /**
+     * Performs content-negotiation on the Accept HTTP header on the request object, when present.
+     */
     public function format(array $callbacks): void {
         foreach ($callbacks as $type => $callback) {
             if ($this->req->accepts($type)) {
@@ -136,11 +141,11 @@ class Response {
      *   - (e.g., ['next' => 'http://api.example.com/users?page=2'])
      */
     public function links(array $links): void {
-        $linkHeader = '';
+        $headerLinks = [];
         foreach ($links as $rel => $url) {
-            $linkHeader .= ($linkHeader ? ', ' : '') . "<$url>; rel=\"$rel\"";
+            $headerLinks[] = "<$url>; rel=\"$rel\"";
         }
-        $this->append('Link', $linkHeader);
+        $this->append('Link', $headerLinks);
     }
 
     /**
@@ -165,12 +170,15 @@ class Response {
      * Adds $field to Vary header if not there already.
      */
     public function vary(string $field): Response {
-        $vary = $this->getHeader('Vary');
-        $fields = $vary ? array_map('trim', explode(',', $vary)) : [];
-        if (!in_array($field, $fields)) {
-            $fields[] = $field;
-            $this->set('Vary', implode(', ', $fields));
+        $fields = $this->getHeader('Vary') ?? [];
+        if (is_string($fields)) {
+            $fields = [$fields];
         }
+
+        if (!in_array($field, $fields, true)) {
+            $this->append('Vary', $field);
+        }
+
         return $this;
     }
 
