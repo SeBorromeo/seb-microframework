@@ -179,6 +179,7 @@ class ResponseTest extends TestCase {
 
     public function testLocalsAddedWithRender(): void {
         $mockApp = $this->getMockBuilder(Application::class)
+            ->disableOriginalConstructor()
             ->onlyMethods(['getEngine'])
             ->getMock();
 

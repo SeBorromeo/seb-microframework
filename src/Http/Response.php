@@ -241,7 +241,10 @@ class Response {
         return $viewEngine;
     }
 
-    private function resolvePath(string $view, string $ext): string {
+    /**
+     * @internal
+     */
+    public function resolvePath(string $view, string $ext): string {
         $viewsDir = rtrim($this->app->get('views'), '/');
 
         if (!$viewsDir)
