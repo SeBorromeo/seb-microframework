@@ -197,4 +197,25 @@ class Router {
         $route->{$method}(...array_slice($args, 1));
         return $this;
     }
+
+    /* ---------- Private Helpers ---------- */
+
+    /**
+     * @internal
+     */
+    public static function createRestoreFunction(callable $fn, object $obj, string ...$props): callable {
+        $vals = [];
+
+        foreach ($props as $prop) {
+            $vals[$prop] = $obj->$prop;
+        }
+
+        return function (...$args) use ($fn, $obj, $props, $vals) {
+            foreach ($props as $prop) {
+                $obj->$prop = $vals[$prop];
+            }
+
+            return $fn(...$args);
+        };
+    }
 }
